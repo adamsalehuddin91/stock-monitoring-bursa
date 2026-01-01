@@ -9,6 +9,7 @@ import { fetchMultipleStocks, fetchHistoricalData, STOCK_SYMBOLS } from '../serv
 import { DEFAULT_WATCHLIST, getStockByCode, getAllStocks } from '../data/malaysianStocks';
 import AddStockModal from '../components/AddStockModal';
 import AdvancedFilter from '../components/AdvancedFilter';
+import { isMarketOpen } from '../utils/marketHours';
 
 function Watchlist() {
   const navigate = useNavigate();
@@ -233,6 +234,7 @@ function Watchlist() {
   const gainers = stocks.filter(s => s.change > 0).length;
   const losers = stocks.filter(s => s.change < 0).length;
   const unchanged = stocks.filter(s => s.change === 0).length;
+  const marketOpen = isMarketOpen();
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -409,8 +411,15 @@ function Watchlist() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <div className="font-semibold text-gray-800 dark:text-gray-100">
-                              {stock.price.toFixed(2)}
+                            <div>
+                              <div className="font-semibold text-gray-800 dark:text-gray-100">
+                                {stock.price.toFixed(2)}
+                              </div>
+                              {!marketOpen && (
+                                <div className="text-[10px] text-gray-400 dark:text-gray-500">
+                                  Last Close
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-right">
