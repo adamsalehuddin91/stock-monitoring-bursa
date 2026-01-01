@@ -193,10 +193,11 @@ function Watchlist() {
   }, [watchlistCodes]);
 
   // Auto-refresh every 30 seconds
+  // Note: Depends on watchlistCodes to use latest market's stocks
   useEffect(() => {
     const timer = setInterval(fetchData, 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [watchlistCodes]);
 
   const refreshData = () => {
     fetchData();
