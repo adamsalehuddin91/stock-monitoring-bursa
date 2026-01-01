@@ -12,10 +12,32 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/query1\.finance\.yahoo\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'yahoo-finance-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 5 // 5 minutes
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      },
       manifest: {
-        name: 'Bursa Malaysia Stock Monitor',
+        name: 'Global Stock Monitor',
         short_name: 'Stock Monitor',
-        description: 'Real-time Malaysian stock market monitoring with portfolio tracking, alerts, and advanced filtering',
+        description: 'Real-time global stock market monitoring (Malaysia + US) with portfolio tracking, alerts, and advanced filtering',
         theme_color: '#3b82f6',
         background_color: '#1f2937',
         display: 'standalone',
@@ -34,25 +56,6 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
-          }
-        ]
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/query1\.finance\.yahoo\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'yahoo-finance-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 5 // 5 minutes
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
           }
         ]
       }
