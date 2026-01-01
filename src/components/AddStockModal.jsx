@@ -1,21 +1,42 @@
 import React, { useState } from 'react';
 import { X, Search, Plus, TrendingUp } from 'lucide-react';
 import { searchStocks, getAllStocks } from '../data/malaysianStocks';
+import { getAllUSStocks } from '../data/globalStocks';
 
-function AddStockModal({ isOpen, onClose, onAddStock, currentWatchlist }) {
+function AddStockModal({ isOpen, onClose, onAddStock, currentWatchlist, selectedMarket = 'BURSA' }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   if (!isOpen) return null;
 
-  const allStocks = getAllStocks();
+  // Get appropriate stock database based on market
+  const getStockDatabase = () => {
+    if (selectedMarket === 'US') return getAllUSStocks();
+    if (selectedMarket === 'GLOBAL') return [...getAllStocks(), ...getAllUSStocks()];
+    return getAllStocks();
+  };
+
+  const allStocks = getStockDatabase();
+
+  // Search function that works for both markets
+  const searchInStocks = (term) => {
+    const searchLower = term.toLowerCase();
+    return allStocks.filter(stock =>
+      stock.name.toLowerCase().includes(searchLower) ||
+      stock.code.toLowerCase().includes(searchLower) ||
+      stock.sector?.toLowerCase().includes(searchLower)
+    );
+  };
 
   // Filter stocks
   const filteredStocks = searchTerm
-    ? searchStocks(searchTerm)
+    ? searchInStocks(searchTerm)
     : selectedCategory === 'all'
     ? allStocks
-    : allStocks.filter(stock => stock.category.toLowerCase() === selectedCategory.toLowerCase());
+    : allStocks.filter(stock =>
+        (stock.category?.toLowerCase() === selectedCategory.toLowerCase()) ||
+        (stock.sector?.toLowerCase() === selectedCategory.toLowerCase())
+      );
 
   // Remove already added stocks
   const availableStocks = filteredStocks.filter(

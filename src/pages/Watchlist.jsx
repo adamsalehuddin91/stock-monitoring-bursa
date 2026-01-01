@@ -13,6 +13,13 @@ import AddStockModal from '../components/AddStockModal';
 import AdvancedFilter from '../components/AdvancedFilter';
 import { isMarketOpen } from '../utils/marketHours';
 
+// Get default watchlist based on market (outside component to avoid recreation)
+const getDefaultWatchlist = (market) => {
+  if (market === 'US') return DEFAULT_US_WATCHLIST;
+  if (market === 'GLOBAL') return [...DEFAULT_WATCHLIST, ...DEFAULT_US_WATCHLIST];
+  return DEFAULT_WATCHLIST;
+};
+
 function Watchlist() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -35,23 +42,12 @@ function Watchlist() {
     quickFilter: 'all'
   });
 
-  // Save selected market to localStorage
-  useEffect(() => {
-    localStorage.setItem('selectedMarket', selectedMarket);
-  }, [selectedMarket]);
-
-  // Get default watchlist based on market
-  const getDefaultWatchlist = (market) => {
-    if (market === 'US') return DEFAULT_US_WATCHLIST;
-    if (market === 'GLOBAL') return [...DEFAULT_WATCHLIST, ...DEFAULT_US_WATCHLIST];
-    return DEFAULT_WATCHLIST;
-  };
-
   // Watchlist codes with localStorage persistence per market
   const [watchlistCodes, setWatchlistCodes] = useState(() => {
-    const storageKey = `stockWatchlist_${selectedMarket}`;
+    const currentMarket = localStorage.getItem('selectedMarket') || 'BURSA';
+    const storageKey = `stockWatchlist_${currentMarket}`;
     const saved = localStorage.getItem(storageKey);
-    let codes = saved ? JSON.parse(saved) : getDefaultWatchlist(selectedMarket);
+    let codes = saved ? JSON.parse(saved) : getDefaultWatchlist(currentMarket);
 
     // 🔄 AUTO-MIGRATION: Update old stock codes to new ones
     const codeMap = {
@@ -80,6 +76,11 @@ function Watchlist() {
 
     return codes;
   });
+
+  // Save selected market to localStorage
+  useEffect(() => {
+    localStorage.setItem('selectedMarket', selectedMarket);
+  }, [selectedMarket]);
 
   // Save to localStorage whenever watchlist changes
   useEffect(() => {
@@ -533,6 +534,7 @@ function Watchlist() {
         onClose={() => setShowAddModal(false)}
         onAddStock={addStock}
         currentWatchlist={watchlistCodes}
+        selectedMarket={selectedMarket}
       />
 
       {/* Advanced Filter Modal */}
