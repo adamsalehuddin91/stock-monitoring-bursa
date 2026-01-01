@@ -24,6 +24,15 @@ export const US_STOCKS = {
     { code: 'CSCO', name: 'Cisco Systems', sector: 'Networking', market: 'NASDAQ', country: 'US' },
     { code: 'IBM', name: 'IBM', sector: 'Technology', market: 'NYSE', country: 'US' },
     { code: 'QCOM', name: 'Qualcomm Inc.', sector: 'Semiconductors', market: 'NASDAQ', country: 'US' },
+    { code: 'NOW', name: 'ServiceNow Inc.', sector: 'Software', market: 'NYSE', country: 'US' },
+    { code: 'SNOW', name: 'Snowflake Inc.', sector: 'Software', market: 'NYSE', country: 'US' },
+    { code: 'UBER', name: 'Uber Technologies', sector: 'Technology', market: 'NYSE', country: 'US' },
+    { code: 'LYFT', name: 'Lyft Inc.', sector: 'Technology', market: 'NASDAQ', country: 'US' },
+    { code: 'SHOP', name: 'Shopify Inc.', sector: 'E-commerce', market: 'NYSE', country: 'US' },
+    { code: 'SPOT', name: 'Spotify Technology', sector: 'Streaming', market: 'NYSE', country: 'US' },
+    { code: 'ZM', name: 'Zoom Video Communications', sector: 'Software', market: 'NASDAQ', country: 'US' },
+    { code: 'TWLO', name: 'Twilio Inc.', sector: 'Software', market: 'NYSE', country: 'US' },
+    { code: 'DOCU', name: 'DocuSign Inc.', sector: 'Software', market: 'NASDAQ', country: 'US' },
   ],
 
   // Finance & Banking
@@ -59,6 +68,12 @@ export const US_STOCKS = {
     { code: 'PEP', name: 'PepsiCo Inc.', sector: 'Beverages', market: 'NASDAQ', country: 'US' },
     { code: 'COST', name: 'Costco Wholesale', sector: 'Retail', market: 'NASDAQ', country: 'US' },
     { code: 'TGT', name: 'Target Corporation', sector: 'Retail', market: 'NYSE', country: 'US' },
+    { code: 'LOW', name: "Lowe's Companies", sector: 'Retail', market: 'NYSE', country: 'US' },
+    { code: 'BABA', name: 'Alibaba Group', sector: 'E-commerce', market: 'NYSE', country: 'China' },
+    { code: 'YUM', name: 'Yum! Brands', sector: 'Restaurants', market: 'NYSE', country: 'US' },
+    { code: 'CMG', name: 'Chipotle Mexican Grill', sector: 'Restaurants', market: 'NYSE', country: 'US' },
+    { code: 'BBY', name: 'Best Buy Co.', sector: 'Retail', market: 'NYSE', country: 'US' },
+    { code: 'EBAY', name: 'eBay Inc.', sector: 'E-commerce', market: 'NASDAQ', country: 'US' },
   ],
 
   // Entertainment & Media
@@ -112,6 +127,42 @@ export const US_STOCKS = {
     { code: 'NVDA', name: 'NVIDIA Corporation', sector: 'AI/GPU', market: 'NASDAQ', country: 'US' },
     { code: 'AMD', name: 'Advanced Micro Devices', sector: 'AI/Processors', market: 'NASDAQ', country: 'US' },
     { code: 'PLTR', name: 'Palantir Technologies', sector: 'AI/Software', market: 'NYSE', country: 'US' },
+    { code: 'AI', name: 'C3.ai Inc.', sector: 'AI/Software', market: 'NYSE', country: 'US' },
+  ],
+
+  // Airlines & Travel
+  airlines: [
+    { code: 'AAL', name: 'American Airlines', sector: 'Airlines', market: 'NASDAQ', country: 'US' },
+    { code: 'DAL', name: 'Delta Air Lines', sector: 'Airlines', market: 'NYSE', country: 'US' },
+    { code: 'UAL', name: 'United Airlines', sector: 'Airlines', market: 'NASDAQ', country: 'US' },
+    { code: 'LUV', name: 'Southwest Airlines', sector: 'Airlines', market: 'NYSE', country: 'US' },
+    { code: 'ABNB', name: 'Airbnb Inc.', sector: 'Travel', market: 'NASDAQ', country: 'US' },
+    { code: 'BKNG', name: 'Booking Holdings', sector: 'Travel', market: 'NASDAQ', country: 'US' },
+    { code: 'MAR', name: 'Marriott International', sector: 'Hospitality', market: 'NASDAQ', country: 'US' },
+  ],
+
+  // Gaming & Entertainment
+  gaming: [
+    { code: 'RBLX', name: 'Roblox Corporation', sector: 'Gaming', market: 'NYSE', country: 'US' },
+    { code: 'EA', name: 'Electronic Arts', sector: 'Gaming', market: 'NASDAQ', country: 'US' },
+    { code: 'ATVI', name: 'Activision Blizzard', sector: 'Gaming', market: 'NASDAQ', country: 'US' },
+    { code: 'TTWO', name: 'Take-Two Interactive', sector: 'Gaming', market: 'NASDAQ', country: 'US' },
+    { code: 'DKNG', name: 'DraftKings Inc.', sector: 'Gaming', market: 'NASDAQ', country: 'US' },
+  ],
+
+  // Luxury & Fashion
+  luxury: [
+    { code: 'LULU', name: 'Lululemon Athletica', sector: 'Apparel', market: 'NASDAQ', country: 'US' },
+    { code: 'TJX', name: 'TJX Companies', sector: 'Retail', market: 'NYSE', country: 'US' },
+    { code: 'RH', name: 'RH (Restoration Hardware)', sector: 'Retail', market: 'NYSE', country: 'US' },
+  ],
+
+  // Food & Beverage
+  food_beverage: [
+    { code: 'MNST', name: 'Monster Beverage', sector: 'Beverages', market: 'NASDAQ', country: 'US' },
+    { code: 'KHC', name: 'Kraft Heinz Company', sector: 'Food', market: 'NASDAQ', country: 'US' },
+    { code: 'GIS', name: 'General Mills', sector: 'Food', market: 'NYSE', country: 'US' },
+    { code: 'K', name: 'Kellogg Company', sector: 'Food', market: 'NYSE', country: 'US' },
   ]
 };
 
@@ -131,6 +182,10 @@ export const getAllUSStocks = () => {
     ...US_STOCKS.fintech,
     ...US_STOCKS.semiconductors,
     ...US_STOCKS.ai_cloud,
+    ...US_STOCKS.airlines,
+    ...US_STOCKS.gaming,
+    ...US_STOCKS.luxury,
+    ...US_STOCKS.food_beverage,
   ];
 };
 

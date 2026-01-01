@@ -28,15 +28,15 @@ function AddStockModal({ isOpen, onClose, onAddStock, currentWatchlist, selected
     );
   };
 
-  // Filter stocks
+  // Filter stocks (use 'sector' for US stocks, 'category' for Malaysian stocks)
   const filteredStocks = searchTerm
     ? searchInStocks(searchTerm)
     : selectedCategory === 'all'
     ? allStocks
-    : allStocks.filter(stock =>
-        (stock.category?.toLowerCase() === selectedCategory.toLowerCase()) ||
-        (stock.sector?.toLowerCase() === selectedCategory.toLowerCase())
-      );
+    : allStocks.filter(stock => {
+        const categoryField = selectedMarket === 'US' ? stock.sector : stock.category;
+        return categoryField?.toLowerCase() === selectedCategory.toLowerCase();
+      });
 
   // Remove already added stocks
   const availableStocks = filteredStocks.filter(
@@ -48,21 +48,56 @@ function AddStockModal({ isOpen, onClose, onAddStock, currentWatchlist, selected
     setSearchTerm('');
   };
 
-  const categories = [
-    { id: 'all', name: 'All Stocks', icon: '📊' },
-    { id: 'blue chip', name: 'Blue Chips', icon: '💎' },
-    { id: 'growth', name: 'Growth', icon: '🚀' },
-    { id: 'tech', name: 'Technology', icon: '💻' },
-    { id: 'property', name: 'Property', icon: '🏢' },
-    { id: 'consumer', name: 'Consumer', icon: '🛒' },
-    { id: 'agriculture', name: 'Agriculture', icon: '🌾' },
-    { id: 'industrial', name: 'Industrial', icon: '🏭' },
-    { id: 'healthcare', name: 'Healthcare', icon: '⚕️' },
-    { id: 'oil & gas', name: 'Oil & Gas', icon: '⛽' },
-    { id: 'automotive', name: 'Automotive', icon: '🚗' },
-    { id: 'finance', name: 'Finance', icon: '💰' },
-    { id: 'reit', name: 'REITs', icon: '🏬' }
-  ];
+  // Dynamic categories based on market
+  const getCategories = () => {
+    if (selectedMarket === 'US') {
+      return [
+        { id: 'all', name: 'All Stocks', icon: '📊' },
+        { id: 'technology', name: 'Technology', icon: '💻' },
+        { id: 'software', name: 'Software', icon: '💿' },
+        { id: 'finance', name: 'Finance', icon: '💰' },
+        { id: 'banking', name: 'Banking', icon: '🏦' },
+        { id: 'healthcare', name: 'Healthcare', icon: '⚕️' },
+        { id: 'pharmaceuticals', name: 'Pharma', icon: '💊' },
+        { id: 'retail', name: 'Retail', icon: '🛒' },
+        { id: 'e-commerce', name: 'E-commerce', icon: '📦' },
+        { id: 'restaurants', name: 'Restaurants', icon: '🍔' },
+        { id: 'beverages', name: 'Beverages', icon: '🥤' },
+        { id: 'food', name: 'Food', icon: '🍕' },
+        { id: 'media', name: 'Media', icon: '📺' },
+        { id: 'entertainment', name: 'Entertainment', icon: '🎭' },
+        { id: 'streaming', name: 'Streaming', icon: '🎬' },
+        { id: 'gaming', name: 'Gaming', icon: '🎮' },
+        { id: 'semiconductors', name: 'Semiconductors', icon: '🔌' },
+        { id: 'automotive', name: 'Automotive', icon: '🚗' },
+        { id: 'airlines', name: 'Airlines', icon: '✈️' },
+        { id: 'travel', name: 'Travel', icon: '🌍' },
+        { id: 'hospitality', name: 'Hotels', icon: '🏨' },
+        { id: 'apparel', name: 'Apparel', icon: '👕' },
+        { id: 'oil & gas', name: 'Oil & Gas', icon: '⛽' },
+        { id: 'telecommunications', name: 'Telecom', icon: '📱' }
+      ];
+    } else {
+      // Malaysian stocks
+      return [
+        { id: 'all', name: 'All Stocks', icon: '📊' },
+        { id: 'blue chip', name: 'Blue Chips', icon: '💎' },
+        { id: 'growth', name: 'Growth', icon: '🚀' },
+        { id: 'tech', name: 'Technology', icon: '💻' },
+        { id: 'property', name: 'Property', icon: '🏢' },
+        { id: 'consumer', name: 'Consumer', icon: '🛒' },
+        { id: 'agriculture', name: 'Agriculture', icon: '🌾' },
+        { id: 'industrial', name: 'Industrial', icon: '🏭' },
+        { id: 'healthcare', name: 'Healthcare', icon: '⚕️' },
+        { id: 'oil & gas', name: 'Oil & Gas', icon: '⛽' },
+        { id: 'automotive', name: 'Automotive', icon: '🚗' },
+        { id: 'finance', name: 'Finance', icon: '💰' },
+        { id: 'reit', name: 'REITs', icon: '🏬' }
+      ];
+    }
+  };
+
+  const categories = getCategories();
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -73,7 +108,7 @@ function AddStockModal({ isOpen, onClose, onAddStock, currentWatchlist, selected
           <div>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Add Stocks to Watchlist</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Browse {allStocks.length}+ Malaysian stocks • {availableStocks.length} available
+              Browse {allStocks.length}+ {selectedMarket === 'US' ? 'US' : selectedMarket === 'GLOBAL' ? 'Global' : 'Malaysian'} stocks • {availableStocks.length} available
             </p>
           </div>
           <button

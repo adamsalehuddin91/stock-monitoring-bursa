@@ -83,10 +83,11 @@ function Watchlist() {
   }, [selectedMarket]);
 
   // Save to localStorage whenever watchlist changes
+  // NOTE: Only depends on watchlistCodes, NOT selectedMarket (to avoid race condition)
   useEffect(() => {
     const storageKey = `stockWatchlist_${selectedMarket}`;
     localStorage.setItem(storageKey, JSON.stringify(watchlistCodes));
-  }, [watchlistCodes, selectedMarket]);
+  }, [watchlistCodes]);
 
   // Reload watchlist when market changes
   useEffect(() => {
