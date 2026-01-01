@@ -5,8 +5,10 @@ import { TrendingUp, TrendingDown, RefreshCw, BarChart2, Search, ArrowUpDown, Tr
 import Sidebar from '../partials/StockSidebar';
 import Header from '../partials/Header';
 import MiniChart from '../components/MiniChart';
+import MarketSelector from '../components/MarketSelector';
 import { fetchMultipleStocks, fetchHistoricalData, STOCK_SYMBOLS } from '../services/stockApi';
 import { DEFAULT_WATCHLIST, getStockByCode, getAllStocks } from '../data/malaysianStocks';
+import { DEFAULT_US_WATCHLIST, getAllUSStocks, getUSStockByCode } from '../data/globalStocks';
 import AddStockModal from '../components/AddStockModal';
 import AdvancedFilter from '../components/AdvancedFilter';
 import { isMarketOpen } from '../utils/marketHours';
@@ -14,6 +16,9 @@ import { isMarketOpen } from '../utils/marketHours';
 function Watchlist() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedMarket, setSelectedMarket] = useState(() => {
+    return localStorage.getItem('selectedMarket') || 'BURSA';
+  });
   const [stocks, setStocks] = useState([]);
   const [chartData, setChartData] = useState({});
   const [loading, setLoading] = useState(true);
@@ -30,10 +35,23 @@ function Watchlist() {
     quickFilter: 'all'
   });
 
-  // Watchlist codes with localStorage persistence
+  // Save selected market to localStorage
+  useEffect(() => {
+    localStorage.setItem('selectedMarket', selectedMarket);
+  }, [selectedMarket]);
+
+  // Get default watchlist based on market
+  const getDefaultWatchlist = (market) => {
+    if (market === 'US') return DEFAULT_US_WATCHLIST;
+    if (market === 'GLOBAL') return [...DEFAULT_WATCHLIST, ...DEFAULT_US_WATCHLIST];
+    return DEFAULT_WATCHLIST;
+  };
+
+  // Watchlist codes with localStorage persistence per market
   const [watchlistCodes, setWatchlistCodes] = useState(() => {
-    const saved = localStorage.getItem('stockWatchlist');
-    let codes = saved ? JSON.parse(saved) : DEFAULT_WATCHLIST;
+    const storageKey = `stockWatchlist_${selectedMarket}`;
+    const saved = localStorage.getItem(storageKey);
+    let codes = saved ? JSON.parse(saved) : getDefaultWatchlist(selectedMarket);
 
     // 🔄 AUTO-MIGRATION: Update old stock codes to new ones
     const codeMap = {
@@ -65,17 +83,36 @@ function Watchlist() {
 
   // Save to localStorage whenever watchlist changes
   useEffect(() => {
-    localStorage.setItem('stockWatchlist', JSON.stringify(watchlistCodes));
-  }, [watchlistCodes]);
+    const storageKey = `stockWatchlist_${selectedMarket}`;
+    localStorage.setItem(storageKey, JSON.stringify(watchlistCodes));
+  }, [watchlistCodes, selectedMarket]);
 
-  // Enrich stock data with sector info
+  // Reload watchlist when market changes
+  useEffect(() => {
+    const storageKey = `stockWatchlist_${selectedMarket}`;
+    const saved = localStorage.getItem(storageKey);
+    const codes = saved ? JSON.parse(saved) : getDefaultWatchlist(selectedMarket);
+    setWatchlistCodes(codes);
+  }, [selectedMarket]);
+
+  // Enrich stock data with sector info from appropriate database
   const enrichStockData = (stocksData) => {
     return stocksData.map(stock => {
-      const metadata = getStockByCode(stock.code);
+      let metadata;
+      if (selectedMarket === 'US') {
+        metadata = getUSStockByCode(stock.code);
+      } else if (selectedMarket === 'GLOBAL') {
+        // Try both databases
+        metadata = getStockByCode(stock.code) || getUSStockByCode(stock.code);
+      } else {
+        metadata = getStockByCode(stock.code);
+      }
       return {
         ...stock,
         sector: metadata?.sector || 'Unknown',
-        category: metadata?.category || 'Unknown'
+        category: metadata?.category || 'Unknown',
+        market: metadata?.market || (selectedMarket === 'US' ? 'NASDAQ' : 'BURSA'),
+        country: metadata?.country || (selectedMarket === 'US' ? 'US' : 'MY')
       };
     });
   };
@@ -234,7 +271,8 @@ function Watchlist() {
   const gainers = stocks.filter(s => s.change > 0).length;
   const losers = stocks.filter(s => s.change < 0).length;
   const unchanged = stocks.filter(s => s.change === 0).length;
-  const marketOpen = isMarketOpen();
+  const marketOpen = isMarketOpen(selectedMarket);
+  const currency = selectedMarket === 'US' ? 'USD' : selectedMarket === 'GLOBAL' ? 'MYR/USD' : 'MYR';
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -247,12 +285,23 @@ function Watchlist() {
           <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
 
             {/* Page header */}
-            <div className="sm:flex sm:justify-between sm:items-center mb-8">
+            <div className="sm:flex sm:justify-between sm:items-center mb-6">
               <div className="mb-4 sm:mb-0">
                 <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Stock Watchlist</h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Monitoring {stocks.length} stocks</p>
               </div>
+            </div>
 
+            {/* Market Selector */}
+            <div className="mb-6">
+              <MarketSelector
+                selectedMarket={selectedMarket}
+                onMarketChange={setSelectedMarket}
+              />
+            </div>
+
+            {/* Search and Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
               <div className="flex items-center space-x-3">
                 {/* Search */}
                 <div className="relative">
@@ -363,7 +412,7 @@ function Watchlist() {
                       <th className="px-4 py-3 text-center">Trend (5D)</th>
                       <th className="px-4 py-3 text-right">
                         <button onClick={() => handleSort('price')} className="flex items-center ml-auto hover:text-gray-700 dark:hover:text-gray-200">
-                          Price (RM) <ArrowUpDown className="w-3 h-3 ml-1" />
+                          Price ({currency}) <ArrowUpDown className="w-3 h-3 ml-1" />
                         </button>
                       </th>
                       <th className="px-4 py-3 text-right">
@@ -491,7 +540,7 @@ function Watchlist() {
         isOpen={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         onApplyFilters={setAdvancedFilters}
-        stocks={getAllStocks()}
+        stocks={selectedMarket === 'US' ? getAllUSStocks() : selectedMarket === 'GLOBAL' ? [...getAllStocks(), ...getAllUSStocks()] : getAllStocks()}
         currentFilters={advancedFilters}
       />
     </div>

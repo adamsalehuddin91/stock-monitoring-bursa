@@ -1,8 +1,18 @@
-// Bursa Malaysia Market Hours Utility
+// Multi-Market Hours Utility (Bursa Malaysia + US Markets)
 
-export const isMarketOpen = () => {
+export const isMarketOpen = (market = 'BURSA') => {
   const now = new Date();
 
+  if (market === 'US' || market === 'NASDAQ' || market === 'NYSE') {
+    return isUSMarketOpen(now);
+  }
+
+  // Default: Bursa Malaysia
+  return isBursaMarketOpen(now);
+};
+
+// Bursa Malaysia Market Hours
+export const isBursaMarketOpen = (now = new Date()) => {
   // Convert to Malaysia Time (UTC+8)
   const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
 
@@ -17,8 +27,8 @@ export const isMarketOpen = () => {
   }
 
   // Bursa Malaysia trading hours (Mon-Fri):
-  // Morning session: 9:00 AM - 12:30 PM
-  // Afternoon session: 2:30 PM - 5:00 PM
+  // Morning session: 9:00 AM - 12:30 PM MYT
+  // Afternoon session: 2:30 PM - 5:00 PM MYT
 
   const morningStart = 9 * 60; // 9:00 AM
   const morningEnd = 12 * 60 + 30; // 12:30 PM
@@ -32,9 +42,67 @@ export const isMarketOpen = () => {
   return isMorningSession || isAfternoonSession;
 };
 
-export const getMarketStatus = () => {
-  const isOpen = isMarketOpen();
+// US Market Hours (NASDAQ + NYSE)
+export const isUSMarketOpen = (now = new Date()) => {
+  // Convert to US Eastern Time (UTC-5/-4 depending on DST)
+  const usTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+
+  const day = usTime.getDay(); // 0 = Sunday, 6 = Saturday
+  const hours = usTime.getHours();
+  const minutes = usTime.getMinutes();
+  const currentTime = hours * 60 + minutes;
+
+  // Weekend check
+  if (day === 0 || day === 6) {
+    return false;
+  }
+
+  // US Market hours (Mon-Fri):
+  // Regular session: 9:30 AM - 4:00 PM EST
+  const marketOpen = 9 * 60 + 30; // 9:30 AM
+  const marketClose = 16 * 60; // 4:00 PM
+
+  return currentTime >= marketOpen && currentTime <= marketClose;
+};
+
+export const getMarketStatus = (market = 'BURSA') => {
   const now = new Date();
+  const isOpen = isMarketOpen(market);
+
+  if (market === 'US' || market === 'NASDAQ' || market === 'NYSE') {
+    const usTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const day = usTime.getDay();
+
+    if (day === 0 || day === 6) {
+      return {
+        isOpen: false,
+        status: 'Closed',
+        message: 'Weekend',
+        nextOpen: 'Monday 9:30 AM EST',
+        timezone: 'EST'
+      };
+    }
+
+    if (isOpen) {
+      return {
+        isOpen: true,
+        status: 'Open',
+        message: 'Live Trading',
+        color: 'green',
+        timezone: 'EST'
+      };
+    }
+
+    return {
+      isOpen: false,
+      status: 'Closed',
+      message: 'After Hours',
+      nextOpen: 'Next trading day',
+      timezone: 'EST'
+    };
+  }
+
+  // Bursa Malaysia
   const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
   const day = malaysiaTime.getDay();
 
@@ -43,7 +111,8 @@ export const getMarketStatus = () => {
       isOpen: false,
       status: 'Closed',
       message: 'Weekend',
-      nextOpen: 'Monday 9:00 AM'
+      nextOpen: 'Monday 9:00 AM MYT',
+      timezone: 'MYT'
     };
   }
 
@@ -52,7 +121,8 @@ export const getMarketStatus = () => {
       isOpen: true,
       status: 'Open',
       message: 'Live Trading',
-      color: 'green'
+      color: 'green',
+      timezone: 'MYT'
     };
   }
 
@@ -60,7 +130,8 @@ export const getMarketStatus = () => {
     isOpen: false,
     status: 'Closed',
     message: 'After Hours',
-    nextOpen: 'Next trading day'
+    nextOpen: 'Next trading day',
+    timezone: 'MYT'
   };
 };
 

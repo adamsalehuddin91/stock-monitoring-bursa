@@ -3,6 +3,7 @@
 const YAHOO_BASE_URL = '/api/yahoo/v8/finance/chart';
 
 import { getAllStocks } from '../data/malaysianStocks';
+import { getAllUSStocks } from '../data/globalStocks';
 
 // ===== CACHE SYSTEM to avoid rate limiting =====
 const cache = new Map();
@@ -46,13 +47,24 @@ const throttledFetch = async (url) => {
   return fetch(url, fetchOptions);
 };
 
-// Generate stock symbols mapping from database (Yahoo Finance format: CODE.KL)
+// Generate stock symbols mapping from database
+// Malaysian stocks: CODE.KL (e.g., 1155.KL)
+// US stocks: CODE (e.g., AAPL)
 const generateStockSymbols = () => {
-  const allStocks = getAllStocks();
   const symbols = {};
-  allStocks.forEach(stock => {
+
+  // Malaysian stocks - add .KL suffix
+  const malaysianStocks = getAllStocks();
+  malaysianStocks.forEach(stock => {
     symbols[stock.code] = `${stock.code}.KL`;
   });
+
+  // US stocks - use code as-is
+  const usStocks = getAllUSStocks();
+  usStocks.forEach(stock => {
+    symbols[stock.code] = stock.code;
+  });
+
   return symbols;
 };
 
@@ -277,9 +289,11 @@ export const fetchKLCIIndex = async () => {
   }
 };
 
-// Helper function to get stock name from code
+// Helper function to get stock name from code (checks both databases)
 const getStockName = (code) => {
-  const allStocks = getAllStocks();
+  const malaysianStocks = getAllStocks();
+  const usStocks = getAllUSStocks();
+  const allStocks = [...malaysianStocks, ...usStocks];
   const stock = allStocks.find(s => s.code === code);
   return stock ? stock.name : 'UNKNOWN';
 };
