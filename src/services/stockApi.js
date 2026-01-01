@@ -1,8 +1,6 @@
 // Yahoo Finance API Service for Real-time Stock Data
-// Use Vite proxy in development to bypass CORS
-const YAHOO_BASE_URL = import.meta.env.DEV
-  ? '/api/yahoo/v8/finance/chart'
-  : 'https://query1.finance.yahoo.com/v8/finance/chart';
+// Use /api/yahoo proxy in BOTH dev and production to bypass CORS
+const YAHOO_BASE_URL = '/api/yahoo/v8/finance/chart';
 
 import { getAllStocks } from '../data/malaysianStocks';
 
