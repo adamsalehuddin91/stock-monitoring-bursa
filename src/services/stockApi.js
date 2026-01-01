@@ -60,11 +60,20 @@ const generateStockSymbols = () => {
 
 export const STOCK_SYMBOLS = generateStockSymbols();
 
-// Fallback dummy data
+// Fallback dummy data - CACHED to prevent random changes
+const dummyDataCache = new Map();
+
 const getDummyStockData = (stockCode) => {
+  // Return cached dummy data if exists (stable prices)
+  if (dummyDataCache.has(stockCode)) {
+    console.warn(`📦 Using cached dummy data for ${stockCode}`);
+    return dummyDataCache.get(stockCode);
+  }
+
+  // Generate new dummy data only once
   const basePrice = Math.random() * 20 + 2;
   const change = (Math.random() - 0.5) * 0.5;
-  return {
+  const dummyData = {
     code: stockCode,
     name: getStockName(stockCode),
     price: basePrice,
@@ -77,6 +86,12 @@ const getDummyStockData = (stockCode) => {
     timestamp: Date.now(),
     isDummy: true
   };
+
+  // Cache it permanently for this session
+  dummyDataCache.set(stockCode, dummyData);
+  console.warn(`⚠️ Generated dummy data for ${stockCode} (will be cached)`);
+
+  return dummyData;
 };
 
 // Fetch real-time data for a single stock from Yahoo Finance
@@ -101,12 +116,25 @@ export const fetchStockData = async (stockCode) => {
     const response = await throttledFetch(url);
 
     if (!response.ok) {
-      console.error(`Yahoo API error: ${response.status} for ${symbol}`);
+      console.error(`❌ Yahoo API error: ${response.status} for ${symbol}`);
+      console.error(`Full URL: ${url}`);
+
       if (response.status === 429) {
-        console.warn('⚠️ Rate limited! Using dummy data.');
+        console.warn('⚠️ Rate limited! Using cached/dummy data.');
       } else if (response.status === 404) {
-        console.warn(`⚠️ Stock ${symbol} not found on Yahoo Finance. Using dummy data.`);
+        console.warn(`⚠️ Stock ${symbol} not found on Yahoo Finance.`);
+      } else {
+        console.error(`⚠️ Unexpected error ${response.status} - API proxy might be failing`);
       }
+
+      // Try to get error details
+      try {
+        const errorData = await response.json();
+        console.error('Error details:', errorData);
+      } catch (e) {
+        console.error('Could not parse error response');
+      }
+
       // Cache the dummy data to prevent retries
       const dummyData = getDummyStockData(stockCode);
       setCachedData(cacheKey, dummyData);
