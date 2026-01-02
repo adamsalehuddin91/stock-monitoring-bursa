@@ -355,7 +355,7 @@ const getUSMarketNews = () => {
     summary: item.summary,
     source: item.source,
     time: getTimeAgo(now - (item.minutes * 60 * 1000)),
-    url: item.url || `https://www.google.com/finance/quote/${item.stocks?.[0]}:NASDAQ`,
+    url: item.url || (item.stocks?.[0] ? `https://finance.yahoo.com/quote/${item.stocks[0]}` : `https://finance.yahoo.com/topic/stock-market-news`),
     timestamp: now - (item.minutes * 60 * 1000),
     stocks: item.stocks || [],
     sentiment: item.sentiment
@@ -478,7 +478,7 @@ const getMalaysianMarketNews = () => {
     summary: item.summary,
     source: item.source,
     time: getTimeAgo(now - (item.minutes * 60 * 1000)),
-    url: item.url || `https://www.google.com/finance/quote/${item.stocks?.[0]}:KLSE`,
+    url: item.url || (item.stocks?.[0] ? `https://finance.yahoo.com/quote/${item.stocks[0]}.KL` : `https://www.bursamalaysia.com/market_information/equities_prices`),
     timestamp: now - (item.minutes * 60 * 1000),
     stocks: item.stocks || [],
     sentiment: item.sentiment
