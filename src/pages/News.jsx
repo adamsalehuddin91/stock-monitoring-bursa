@@ -66,10 +66,14 @@ function News() {
   }, []);
 
   const quickLinks = [
-    { name: 'Bursa Malaysia', url: 'https://www.bursamalaysia.com' },
-    { name: 'The Edge Markets', url: 'https://www.theedgemarkets.com' },
-    { name: 'Investing.com', url: 'https://www.investing.com' },
-    { name: 'TradingView', url: 'https://www.tradingview.com' }
+    { name: 'Google Finance', url: 'https://www.google.com/finance', icon: '📊' },
+    { name: 'Bursa Malaysia', url: 'https://www.bursamalaysia.com', icon: '🇲🇾' },
+    { name: 'Yahoo Finance', url: 'https://finance.yahoo.com', icon: '💹' },
+    { name: 'The Edge Markets', url: 'https://www.theedgemarkets.com', icon: '📰' },
+    { name: 'Investing.com', url: 'https://www.investing.com', icon: '💰' },
+    { name: 'TradingView', url: 'https://www.tradingview.com', icon: '📈' },
+    { name: 'MarketWatch', url: 'https://www.marketwatch.com', icon: '⌚' },
+    { name: 'Bloomberg', url: 'https://www.bloomberg.com/markets', icon: '📡' }
   ];
 
   // Helper to get stock from either Malaysian or US database
@@ -255,9 +259,12 @@ function News() {
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{link.name}</span>
-                        <ExternalLink className="w-4 h-4 text-gray-400" />
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{link.icon}</span>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">{link.name}</span>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
                       </a>
                     ))}
                   </div>

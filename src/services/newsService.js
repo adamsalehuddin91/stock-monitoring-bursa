@@ -1,5 +1,6 @@
 // News Service - Fetch real financial news from multiple sources
 // Using AllOrigins as CORS proxy to fetch RSS feeds
+import { fetchFinnhubMarketNews, isFinnhubConfigured } from './finnhubService';
 
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
@@ -62,6 +63,26 @@ export const fetchFinancialNews = async () => {
     } else {
       news = getMalaysianMarketNews();
       console.log(`✅ Loaded ${news.length} Malaysian market news articles`);
+    }
+
+    // Add Finnhub real-time news if API is configured
+    if (isFinnhubConfigured()) {
+      try {
+        console.log('📡 Fetching real-time news from Finnhub...');
+        const finnhubNews = await fetchFinnhubMarketNews('general');
+
+        if (finnhubNews && finnhubNews.length > 0) {
+          // Merge Finnhub news with curated news
+          news = [...finnhubNews, ...news]
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 30); // Limit to 30 total articles
+          console.log(`✅ Added ${finnhubNews.length} real-time articles from Finnhub`);
+        }
+      } catch (finnhubError) {
+        console.warn('Finnhub API not available, using curated news only:', finnhubError.message);
+      }
+    } else {
+      console.log('ℹ️ Finnhub API not configured. Add VITE_FINNHUB_API_KEY to .env.local for real-time news');
     }
 
     return news;
