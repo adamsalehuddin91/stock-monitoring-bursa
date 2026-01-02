@@ -241,7 +241,8 @@ const getUSMarketNews = () => {
       source: 'Bloomberg',
       stocks: ['NVDA', 'MSFT', 'GOOGL'],
       sentiment: 'bullish',
-      minutes: 15
+      minutes: 15,
+      url: 'https://www.google.com/finance/quote/NVDA:NASDAQ'
     },
     {
       category: 'tech',
@@ -354,7 +355,7 @@ const getUSMarketNews = () => {
     summary: item.summary,
     source: item.source,
     time: getTimeAgo(now - (item.minutes * 60 * 1000)),
-    url: '#',
+    url: item.url || `https://www.google.com/finance/quote/${item.stocks?.[0]}:NASDAQ`,
     timestamp: now - (item.minutes * 60 * 1000),
     stocks: item.stocks || [],
     sentiment: item.sentiment
@@ -477,7 +478,7 @@ const getMalaysianMarketNews = () => {
     summary: item.summary,
     source: item.source,
     time: getTimeAgo(now - (item.minutes * 60 * 1000)),
-    url: '#',
+    url: item.url || `https://www.google.com/finance/quote/${item.stocks?.[0]}:KLSE`,
     timestamp: now - (item.minutes * 60 * 1000),
     stocks: item.stocks || [],
     sentiment: item.sentiment
