@@ -44,14 +44,26 @@ const FALLBACK_NEWS = [
 // Fetch real financial news from RSS feeds
 export const fetchFinancialNews = async () => {
   try {
-    console.log('📰 Loading Malaysian market news...');
+    // Detect which market is selected
+    const selectedMarket = localStorage.getItem('selectedMarket') || 'BURSA';
 
-    // For now, use curated Malaysian market news
-    // This is more reliable and focused on Bursa Malaysia
-    // TODO: Integrate with premium news API (NewsAPI.org) for real-time updates
+    console.log(`📰 Loading ${selectedMarket} market news...`);
 
-    const news = getMalaysianMarketNews();
-    console.log(`✅ Loaded ${news.length} curated news articles`);
+    let news;
+    if (selectedMarket === 'US') {
+      news = getUSMarketNews();
+      console.log(`✅ Loaded ${news.length} US market news articles`);
+    } else if (selectedMarket === 'GLOBAL') {
+      // Combine both markets for global view
+      const malaysianNews = getMalaysianMarketNews();
+      const usNews = getUSMarketNews();
+      news = [...malaysianNews, ...usNews].sort((a, b) => b.timestamp - a.timestamp);
+      console.log(`✅ Loaded ${news.length} global news articles (MY: ${malaysianNews.length}, US: ${usNews.length})`);
+    } else {
+      news = getMalaysianMarketNews();
+      console.log(`✅ Loaded ${news.length} Malaysian market news articles`);
+    }
+
     return news;
 
   } catch (error) {
@@ -131,6 +143,138 @@ const fetchRSSFeed = async (rssUrl, sourceName, defaultCategory) => {
     console.error(`Error fetching ${sourceName}:`, error);
     return [];
   }
+};
+
+// Get US market-specific news (curated for trading)
+const getUSMarketNews = () => {
+  const now = Date.now();
+
+  const newsItems = [
+    {
+      category: 'market',
+      title: 'Tech Stocks Rally on AI Optimism',
+      summary: 'Major technology stocks surge as artificial intelligence investments drive growth. Nvidia, Microsoft, and Google lead gains with strong earnings outlooks.',
+      source: 'Bloomberg',
+      stocks: ['NVDA', 'MSFT', 'GOOGL'],
+      sentiment: 'bullish',
+      minutes: 15
+    },
+    {
+      category: 'tech',
+      title: 'Apple Announces Record iPhone Sales in Q4',
+      summary: 'Apple Inc. reports 15% YoY revenue growth driven by iPhone 15 demand and services expansion. Stock jumps 3.5% on strong guidance.',
+      source: 'CNBC',
+      stocks: ['AAPL'],
+      sentiment: 'bullish',
+      minutes: 30
+    },
+    {
+      category: 'tech',
+      title: 'Tesla Delivers 500K Vehicles, Beats Estimates',
+      summary: 'Electric vehicle maker exceeds delivery targets for Q4, driven by Model 3 and Model Y demand. Production capacity expansion continues.',
+      source: 'Reuters',
+      stocks: ['TSLA'],
+      sentiment: 'bullish',
+      minutes: 60
+    },
+    {
+      category: 'banking',
+      title: 'JPMorgan Chase Reports Strong Q4 Earnings',
+      summary: 'Largest US bank posts record profits with investment banking and trading revenue up 25%. CEO optimistic on economic outlook.',
+      source: 'Wall Street Journal',
+      stocks: ['JPM'],
+      sentiment: 'bullish',
+      minutes: 90
+    },
+    {
+      category: 'tech',
+      title: 'Meta Platforms Revenue Surges on Ad Growth',
+      summary: 'Social media giant sees 23% revenue increase as advertising business rebounds. AI-powered ad tools drive engagement.',
+      source: 'TechCrunch',
+      stocks: ['META'],
+      sentiment: 'bullish',
+      minutes: 120
+    },
+    {
+      category: 'retail',
+      title: 'Amazon Prime Day Breaks Sales Records',
+      summary: 'E-commerce leader reports best-ever Prime Day with $14B in sales. Cloud services AWS maintains strong growth trajectory.',
+      source: 'CNBC',
+      stocks: ['AMZN'],
+      sentiment: 'bullish',
+      minutes: 150
+    },
+    {
+      category: 'market',
+      title: 'S&P 500 Reaches New All-Time High',
+      summary: 'Benchmark index hits record levels as economic data supports soft landing narrative. Tech and financials lead broad market rally.',
+      source: 'Bloomberg',
+      sentiment: 'bullish',
+      minutes: 180
+    },
+    {
+      category: 'tech',
+      title: 'Microsoft Cloud Revenue Accelerates 30%',
+      summary: 'Azure cloud platform growth accelerates as enterprise AI adoption increases. Gaming and productivity segments also beat expectations.',
+      source: 'Reuters',
+      stocks: ['MSFT'],
+      sentiment: 'bullish',
+      minutes: 210
+    },
+    {
+      category: 'streaming',
+      title: 'Netflix Adds 15M Subscribers in Quarter',
+      summary: 'Streaming giant exceeds subscriber growth targets with hit original content. Ad-tier gaining traction with 40% of new signups.',
+      source: 'Variety',
+      stocks: ['NFLX'],
+      sentiment: 'bullish',
+      minutes: 240
+    },
+    {
+      category: 'fintech',
+      title: 'PayPal Transaction Volume Up 18% YoY',
+      summary: 'Digital payments leader processes record transaction volumes. International expansion and Venmo growth drive results.',
+      source: 'Financial Times',
+      stocks: ['PYPL'],
+      sentiment: 'bullish',
+      minutes: 270
+    },
+    {
+      category: 'market',
+      title: 'Fed Holds Rates Steady, Markets Rally',
+      summary: 'Federal Reserve maintains current interest rate policy, signaling potential cuts ahead. Equities surge on dovish tone.',
+      source: 'Wall Street Journal',
+      sentiment: 'bullish',
+      minutes: 300
+    },
+    {
+      category: 'travel',
+      title: 'Airbnb Bookings Surge 25% in Summer Season',
+      summary: 'Home-sharing platform reports record bookings as travel demand remains strong. International markets drive growth.',
+      source: 'Bloomberg',
+      stocks: ['ABNB'],
+      sentiment: 'bullish',
+      minutes: 330
+    }
+  ];
+
+  const newsWithSentiment = newsItems.map(item => ({
+    ...item,
+    sentiment: item.sentiment || detectSentiment(item.title + ' ' + item.summary)
+  }));
+
+  return newsWithSentiment.map((item, index) => ({
+    id: `us-news-${index}-${Date.now()}`,
+    category: item.category,
+    title: item.title,
+    summary: item.summary,
+    source: item.source,
+    time: getTimeAgo(now - (item.minutes * 60 * 1000)),
+    url: '#',
+    timestamp: now - (item.minutes * 60 * 1000),
+    stocks: item.stocks || [],
+    sentiment: item.sentiment
+  }));
 };
 
 // Get Malaysian market-specific news (curated for trading)
@@ -279,13 +423,28 @@ export const getMarketInsights = async () => {
 const detectCategory = (text) => {
   const lowerText = text.toLowerCase();
 
+  // Malaysian-specific categories
   if (lowerText.match(/bank|finance|loan|credit|maybank|cimb|public bank|rhb|ammb|hong leong bank/i)) return 'banking';
   if (lowerText.match(/energy|oil|gas|petronas|tenaga|renewable|solar|power|electricity/i)) return 'energy';
-  if (lowerText.match(/tech|technology|digital|software|semiconductor|ai|cybersecurity|5g/i)) return 'tech';
-  if (lowerText.match(/property|real estate|reit|construction|property developer/i)) return 'property';
-  if (lowerText.match(/plantation|palm oil|commodity|agriculture|rubber/i)) return 'agriculture';
-  if (lowerText.match(/glove|healthcare|medical|hospital|pharmaceutical/i)) return 'healthcare';
-  if (lowerText.match(/global|world|international|us |wall street|dow jones|federal reserve|china|asia/i)) return 'global';
+  if (lowerText.match(/property|real estate|reit|construction|property developer|sunway/i)) return 'property';
+  if (lowerText.match(/plantation|palm oil|commodity|agriculture|rubber|ioi|kl kepong/i)) return 'agriculture';
+  if (lowerText.match(/glove|top glove|healthcare|medical|hospital|pharmaceutical/i)) return 'healthcare';
+
+  // US-specific categories
+  if (lowerText.match(/jpmorgan|jp morgan|chase|goldman|bank of america|wells fargo|citigroup/i)) return 'banking';
+  if (lowerText.match(/apple|microsoft|google|alphabet|amazon|meta|facebook|netflix|tesla|nvidia/i)) return 'tech';
+  if (lowerText.match(/streaming|netflix|disney\+|hbo|paramount|subscriber|content/i)) return 'streaming';
+  if (lowerText.match(/e-commerce|retail|amazon|walmart|target|ebay|shopping/i)) return 'retail';
+  if (lowerText.match(/paypal|venmo|square|stripe|fintech|digital payment|crypto|coinbase/i)) return 'fintech';
+  if (lowerText.match(/airbnb|uber|lyft|travel|ride-sharing|home-sharing|booking/i)) return 'travel';
+  if (lowerText.match(/boeing|aerospace|airline|aviation|aircraft/i)) return 'aerospace';
+
+  // General tech categories (both markets)
+  if (lowerText.match(/tech|technology|digital|software|semiconductor|ai|artificial intelligence|cybersecurity|5g|cloud|saas/i)) return 'tech';
+
+  // Global market indicators
+  if (lowerText.match(/s&p 500|nasdaq|dow jones|federal reserve|fed|wall street|stock market/i)) return 'market';
+  if (lowerText.match(/global|world|international|china|asia|europe|emerging market/i)) return 'global';
 
   return 'market'; // default
 };
@@ -296,7 +455,7 @@ const extractStockMentions = (text) => {
   const lowerText = text.toLowerCase();
 
   // Malaysian blue chip companies
-  const stockKeywords = {
+  const malaysianStockKeywords = {
     '1155': ['maybank', 'malayan banking'],
     '1295': ['public bank', 'pbbank'],
     '5347': ['tenaga', 'tnb', 'tenaga nasional'],
@@ -312,7 +471,45 @@ const extractStockMentions = (text) => {
     '2445': ['kl kepong', 'klk'],
   };
 
-  Object.entries(stockKeywords).forEach(([code, keywords]) => {
+  // US company stock mappings
+  const usStockKeywords = {
+    'AAPL': ['apple', 'iphone', 'ipad', 'macbook', 'tim cook'],
+    'MSFT': ['microsoft', 'windows', 'azure', 'xbox', 'satya nadella'],
+    'GOOGL': ['google', 'alphabet', 'youtube', 'android', 'search engine'],
+    'AMZN': ['amazon', 'aws', 'prime', 'jeff bezos', 'andy jassy'],
+    'TSLA': ['tesla', 'elon musk', 'electric vehicle', 'model 3', 'model y'],
+    'NVDA': ['nvidia', 'gpu', 'ai chip', 'gaming graphics'],
+    'META': ['meta', 'facebook', 'instagram', 'whatsapp', 'mark zuckerberg'],
+    'NFLX': ['netflix', 'streaming service', 'subscriber'],
+    'JPM': ['jpmorgan', 'jp morgan', 'chase bank', 'jamie dimon'],
+    'V': ['visa', 'payment network', 'credit card'],
+    'WMT': ['walmart', 'retail giant'],
+    'DIS': ['disney', 'marvel', 'pixar', 'disney+'],
+    'PYPL': ['paypal', 'venmo', 'digital payment'],
+    'INTC': ['intel', 'semiconductor', 'processor'],
+    'AMD': ['amd', 'ryzen', 'radeon'],
+    'NFLX': ['netflix', 'streaming'],
+    'CRM': ['salesforce', 'crm software'],
+    'CSCO': ['cisco', 'networking'],
+    'ORCL': ['oracle', 'database'],
+    'ABNB': ['airbnb', 'home-sharing', 'vacation rental'],
+    'UBER': ['uber', 'ride-sharing', 'uber eats'],
+    'BABA': ['alibaba', 'jack ma', 'chinese e-commerce'],
+    'BA': ['boeing', 'aircraft', 'aerospace'],
+    'COIN': ['coinbase', 'crypto exchange'],
+  };
+
+  // Check Malaysian stocks
+  Object.entries(malaysianStockKeywords).forEach(([code, keywords]) => {
+    keywords.forEach(keyword => {
+      if (lowerText.includes(keyword)) {
+        mentioned.push(code);
+      }
+    });
+  });
+
+  // Check US stocks
+  Object.entries(usStockKeywords).forEach(([code, keywords]) => {
     keywords.forEach(keyword => {
       if (lowerText.includes(keyword)) {
         mentioned.push(code);
@@ -344,11 +541,33 @@ const getTimeAgo = (timestamp) => {
 const detectSentiment = (text) => {
   const lowerText = text.toLowerCase();
 
-  // Bullish keywords
-  const bullishWords = ['gain', 'surge', 'rise', 'up', 'growth', 'strong', 'positive', 'rally', 'higher', 'increase', 'expansion', 'secures', 'wins', 'award', 'benefit'];
+  // Expanded bullish keywords (more comprehensive)
+  const bullishWords = [
+    // Price action
+    'gain', 'surge', 'rise', 'up', 'rally', 'higher', 'increase', 'jump', 'soar', 'climb', 'advance', 'breakout',
+    // Performance
+    'growth', 'strong', 'positive', 'beat', 'exceed', 'outperform', 'record', 'high', 'boost', 'improve',
+    // Business
+    'expansion', 'secures', 'wins', 'award', 'benefit', 'profit', 'revenue', 'earnings', 'demand', 'sales',
+    // Sentiment
+    'optimism', 'bullish', 'confidence', 'opportunity', 'upgrade', 'buy', 'attractive', 'momentum',
+    // Results
+    'success', 'achievement', 'milestone', 'deliver', 'recovery', 'rebound', 'innovation'
+  ];
 
-  // Bearish keywords
-  const bearishWords = ['fall', 'drop', 'decline', 'down', 'weak', 'negative', 'loss', 'lower', 'decrease', 'concern', 'risk', 'warning', 'cut'];
+  // Expanded bearish keywords (more comprehensive)
+  const bearishWords = [
+    // Price action
+    'fall', 'drop', 'decline', 'down', 'lower', 'decrease', 'plunge', 'tumble', 'slide', 'slip', 'crash',
+    // Performance
+    'weak', 'negative', 'loss', 'miss', 'disappoint', 'underperform', 'low', 'worst', 'slump',
+    // Business
+    'concern', 'risk', 'warning', 'cut', 'layoff', 'bankruptcy', 'debt', 'deficit', 'challenge', 'struggle',
+    // Sentiment
+    'bearish', 'fear', 'uncertainty', 'doubt', 'downgrade', 'sell', 'caution', 'pressure',
+    // Results
+    'failure', 'setback', 'crisis', 'problem', 'issue', 'trouble', 'difficulty'
+  ];
 
   let bullishCount = 0;
   let bearishCount = 0;
@@ -361,8 +580,11 @@ const detectSentiment = (text) => {
     if (lowerText.includes(word)) bearishCount++;
   });
 
-  if (bullishCount > bearishCount) return 'bullish';
-  if (bearishCount > bullishCount) return 'bearish';
+  // Need at least 2 keywords for strong signal, otherwise neutral
+  if (bullishCount >= 2 && bullishCount > bearishCount) return 'bullish';
+  if (bearishCount >= 2 && bearishCount > bullishCount) return 'bearish';
+  if (bullishCount === 1 && bearishCount === 0) return 'bullish';
+  if (bearishCount === 1 && bullishCount === 0) return 'bearish';
   return 'neutral';
 };
 

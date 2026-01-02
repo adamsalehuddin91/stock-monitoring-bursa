@@ -16,12 +16,15 @@ function Alerts() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Watchlist codes for alert generation
-  const watchlistCodes = [
-    '1155', '1295', '5347', '6033', '5225', '1023', '5819', '4197',
-    '6012', '1082', '3816', '5168', '4715', '1066', '6888', '5183',
-    '7277', '1015', '5284', '1961'
-  ];
+  // Get watchlist codes from localStorage (multi-market support)
+  const getWatchlistCodes = () => {
+    const selectedMarket = localStorage.getItem('selectedMarket') || 'BURSA';
+    const storageKey = `stockWatchlist_${selectedMarket}`;
+    const saved = localStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved) : [];
+  };
+
+  const [watchlistCodes, setWatchlistCodes] = useState(getWatchlistCodes());
 
   // Load custom alerts
   const loadCustomAlerts = () => {
@@ -57,6 +60,15 @@ function Alerts() {
     // Refresh alerts every 30 seconds (faster updates)
     const timer = setInterval(fetchAlerts, 30000);
     return () => clearInterval(timer);
+  }, [watchlistCodes]);
+
+  // Listen for market changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setWatchlistCodes(getWatchlistCodes());
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleAlertCreated = () => {

@@ -5,6 +5,7 @@ import Sidebar from '../partials/StockSidebar';
 import Header from '../partials/Header';
 import { fetchFinancialNews, filterNewsByStocks } from '../services/newsService';
 import { getStockByCode } from '../data/malaysianStocks';
+import { getUSStockByCode } from '../data/globalStocks';
 
 function News() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,6 +15,16 @@ function News() {
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Get watchlist codes from localStorage (multi-market support)
+  const getWatchlistCodes = () => {
+    const selectedMarket = localStorage.getItem('selectedMarket') || 'BURSA';
+    const storageKey = `stockWatchlist_${selectedMarket}`;
+    const saved = localStorage.getItem(storageKey);
+    return saved ? JSON.parse(saved) : [];
+  };
+
+  const [watchlistCodes, setWatchlistCodes] = useState(getWatchlistCodes());
 
   // Fetch news
   const fetchNews = async () => {
@@ -33,6 +44,7 @@ function News() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchNews();
+    setWatchlistCodes(getWatchlistCodes());
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -43,6 +55,16 @@ function News() {
     return () => clearInterval(timer);
   }, []);
 
+  // Listen for market changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setWatchlistCodes(getWatchlistCodes());
+      fetchNews();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const quickLinks = [
     { name: 'Bursa Malaysia', url: 'https://www.bursamalaysia.com' },
     { name: 'The Edge Markets', url: 'https://www.theedgemarkets.com' },
@@ -50,15 +72,13 @@ function News() {
     { name: 'TradingView', url: 'https://www.tradingview.com' }
   ];
 
-  // Get watchlist from localStorage
-  const watchlistCodes = (() => {
-    try {
-      const saved = localStorage.getItem('stockWatchlist');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  })();
+  // Helper to get stock from either Malaysian or US database
+  const getStock = (code) => {
+    const malaysianStock = getStockByCode(code);
+    if (malaysianStock) return malaysianStock;
+    const usStock = getUSStockByCode(code);
+    return usStock;
+  };
 
   let filteredNews = category === 'all'
     ? newsArticles
@@ -120,7 +140,7 @@ function News() {
 
                 {/* Category Filter */}
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {['all', 'market', 'banking', 'energy', 'tech', 'global'].map((cat) => (
+                  {['all', 'market', 'banking', 'energy', 'tech', 'streaming', 'retail', 'fintech', 'travel', 'global'].map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setCategory(cat)}
@@ -186,7 +206,7 @@ function News() {
                       {article.stocks && article.stocks.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-2">
                           {article.stocks.map(stockCode => {
-                            const stock = getStockByCode(stockCode);
+                            const stock = getStock(stockCode);
                             return stock ? (
                               <span
                                 key={stockCode}
@@ -269,7 +289,7 @@ function News() {
                         .slice(0, 8);
 
                       return topStocks.map(([code, count]) => {
-                        const stock = getStockByCode(code);
+                        const stock = getStock(code);
                         if (!stock) return null;
 
                         return (

@@ -1,6 +1,7 @@
 // Alert Service - Generate real-time alerts from stock data
 import { fetchMultipleStocks, fetchKLCIIndex } from './stockApi';
 import { fetchFinancialNews } from './newsService';
+import { getUSStockByCode } from '../data/globalStocks';
 
 // Thresholds for alerts
 const THRESHOLDS = {
@@ -52,6 +53,12 @@ export const toggleCustomAlert = (id) => {
   localStorage.setItem(CUSTOM_ALERTS_KEY, JSON.stringify(alerts));
 };
 
+// Get currency symbol for stock (RM for Malaysian, $ for US)
+const getCurrency = (stockCode) => {
+  const usStock = getUSStockByCode(stockCode);
+  return usStock ? '$' : 'RM';
+};
+
 // Check custom price alerts
 const checkCustomAlerts = async (stocks) => {
   const customAlerts = getCustomAlerts().filter(a => a.enabled);
@@ -63,18 +70,19 @@ const checkCustomAlerts = async (stocks) => {
 
       let triggered = false;
       let message = '';
+      const currency = getCurrency(stock.code);
 
       switch (alert.type) {
         case 'price_above':
           if (stock.price >= alert.targetPrice) {
             triggered = true;
-            message = `Price reached RM${stock.price.toFixed(2)} (target: RM${alert.targetPrice})`;
+            message = `Price reached ${currency}${stock.price.toFixed(2)} (target: ${currency}${alert.targetPrice})`;
           }
           break;
         case 'price_below':
           if (stock.price <= alert.targetPrice) {
             triggered = true;
-            message = `Price dropped to RM${stock.price.toFixed(2)} (target: RM${alert.targetPrice})`;
+            message = `Price dropped to ${currency}${stock.price.toFixed(2)} (target: ${currency}${alert.targetPrice})`;
           }
           break;
         case 'percent_gain':
