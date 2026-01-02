@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Activity, Loader2 } from 'lucide-react';
 import { fetchMultipleStocks } from '../../services/stockApi';
 import { getAllStocks } from '../../data/malaysianStocks';
+import { getAllUSStocks } from '../../data/globalStocks';
 
 function MarketOverviewCard() {
   const [overview, setOverview] = useState(null);
@@ -10,31 +11,49 @@ function MarketOverviewCard() {
   const fetchOverview = async () => {
     try {
       setLoading(true);
-      const allStocksList = getAllStocks();
-      const sampleCodes = allStocksList.slice(0, 40).map(s => s.code);
-      const stocksData = await fetchMultipleStocks(sampleCodes);
 
-      // Top gainers
+      // Fetch Malaysian stocks
+      const malaysianStocksList = getAllStocks();
+      const malaysianCodes = malaysianStocksList.slice(0, 30).map(s => s.code);
+      const malaysianData = await fetchMultipleStocks(malaysianCodes);
+      const malaysianWithMarket = malaysianData.map(s => ({ ...s, market: 'MY' }));
+
+      // Fetch US stocks
+      const usStocksList = getAllUSStocks();
+      const usCodes = usStocksList.slice(0, 30).map(s => s.code);
+      const usData = await fetchMultipleStocks(usCodes);
+      const usWithMarket = usData.map(s => ({ ...s, market: 'US' }));
+
+      // Combine both markets
+      const stocksData = [...malaysianWithMarket, ...usWithMarket];
+
+      // Top gainers (from both markets)
       const gainers = stocksData
         .filter(s => s.changePercent > 0)
         .sort((a, b) => b.changePercent - a.changePercent)
         .slice(0, 5);
 
-      // Top losers
+      // Top losers (from both markets)
       const losers = stocksData
         .filter(s => s.changePercent < 0)
         .sort((a, b) => a.changePercent - b.changePercent)
         .slice(0, 5);
 
-      // Most active
+      // Most active (from both markets)
       const mostActive = [...stocksData]
         .sort((a, b) => b.volume - a.volume)
         .slice(0, 5);
 
-      // Statistics
+      // Statistics (combined)
       const advancing = stocksData.filter(s => s.change > 0).length;
       const declining = stocksData.filter(s => s.change < 0).length;
       const unchanged = stocksData.filter(s => s.change === 0).length;
+
+      // Market-specific statistics
+      const malaysianAdvancing = malaysianWithMarket.filter(s => s.change > 0).length;
+      const malaysianDeclining = malaysianWithMarket.filter(s => s.change < 0).length;
+      const usAdvancing = usWithMarket.filter(s => s.change > 0).length;
+      const usDeclining = usWithMarket.filter(s => s.change < 0).length;
 
       setOverview({
         gainers,
@@ -43,7 +62,11 @@ function MarketOverviewCard() {
         advancing,
         declining,
         unchanged,
-        total: stocksData.length
+        total: stocksData.length,
+        malaysianAdvancing,
+        malaysianDeclining,
+        usAdvancing,
+        usDeclining
       });
     } catch (err) {
       console.error('Error fetching market overview:', err);
@@ -75,9 +98,10 @@ function MarketOverviewCard() {
       {/* Market Statistics */}
       <div className="col-span-full sm:col-span-6 xl:col-span-4 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
         <div className="px-5 py-5">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Market Statistics</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Global Market Statistics</h2>
 
-          <div className="space-y-3">
+          {/* Combined Statistics */}
+          <div className="space-y-3 mb-4">
             <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <div className="flex items-center space-x-2">
                 <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -103,9 +127,32 @@ function MarketOverviewCard() {
             </div>
           </div>
 
+          {/* Market Breakdown */}
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-500 dark:text-gray-500">🇲🇾 BURSA</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-green-600 dark:text-green-400 font-medium">↑{overview.malaysianAdvancing}</span>
+                <span className="text-red-600 dark:text-red-400 font-medium">↓{overview.malaysianDeclining}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-500 dark:text-gray-500">🇺🇸 US MARKETS</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-green-600 dark:text-green-400 font-medium">↑{overview.usAdvancing}</span>
+                <span className="text-red-600 dark:text-red-400 font-medium">↓{overview.usDeclining}</span>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase">Market Sentiment</span>
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase">Overall Sentiment</span>
               <span className={`px-2 py-1 text-xs font-bold rounded-full ${
                 overview.advancing > overview.declining
                   ? 'bg-green-500/20 text-green-700 dark:text-green-400'
@@ -134,12 +181,15 @@ function MarketOverviewCard() {
                 <div className="flex items-center space-x-2">
                   <span className="text-xs font-bold text-gray-400 w-4">{index + 1}</span>
                   <div>
-                    <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{stock.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{stock.name}</span>
+                      <span className="text-xs">{stock.market === 'US' ? '🇺🇸' : '🇲🇾'}</span>
+                    </div>
                     <div className="text-xs text-gray-500 dark:text-gray-500">{stock.code}</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-bold text-gray-800 dark:text-gray-100">RM {stock.price.toFixed(2)}</div>
+                  <div className="text-sm font-bold text-gray-800 dark:text-gray-100">{stock.market === 'US' ? '$' : 'RM'}{stock.price.toFixed(2)}</div>
                   <div className="text-xs font-medium text-green-600 dark:text-green-400">+{stock.changePercent.toFixed(2)}%</div>
                 </div>
               </div>
@@ -162,12 +212,15 @@ function MarketOverviewCard() {
                 <div className="flex items-center space-x-2">
                   <span className="text-xs font-bold text-gray-400 w-4">{index + 1}</span>
                   <div>
-                    <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{stock.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{stock.name}</span>
+                      <span className="text-xs">{stock.market === 'US' ? '🇺🇸' : '🇲🇾'}</span>
+                    </div>
                     <div className="text-xs text-gray-500 dark:text-gray-500">{stock.code}</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-bold text-gray-800 dark:text-gray-100">RM {stock.price.toFixed(2)}</div>
+                  <div className="text-sm font-bold text-gray-800 dark:text-gray-100">{stock.market === 'US' ? '$' : 'RM'}{stock.price.toFixed(2)}</div>
                   <div className="text-xs font-medium text-red-600 dark:text-red-400">{stock.changePercent.toFixed(2)}%</div>
                 </div>
               </div>
@@ -190,7 +243,10 @@ function MarketOverviewCard() {
                 <div className="flex items-center space-x-2">
                   <span className="text-xs font-bold text-gray-400 w-4">{index + 1}</span>
                   <div>
-                    <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">{stock.name}</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{stock.name}</span>
+                      <span className="text-xs">{stock.market === 'US' ? '🇺🇸' : '🇲🇾'}</span>
+                    </div>
                     <div className="text-xs text-gray-500 dark:text-gray-500">{stock.code}</div>
                   </div>
                 </div>
