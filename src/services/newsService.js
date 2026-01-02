@@ -4,9 +4,14 @@ import { fetchFinnhubMarketNews, isFinnhubConfigured } from './finnhubService';
 
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
-// Financial News RSS Feeds (Google Finance aggregates from these sources)
+// Financial News RSS Feeds (Google Finance + Yahoo Finance sources)
 const NEWS_SOURCES = {
-  yahoo: 'https://finance.yahoo.com/rss/topfinstories',
+  // Yahoo Finance - Primary source
+  yahooTop: 'https://finance.yahoo.com/rss/topfinstories',
+  yahooMarket: 'https://finance.yahoo.com/rss/headline',
+  yahooWorld: 'https://finance.yahoo.com/news/rssindex',
+
+  // Other major sources
   reuters: 'https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best',
   bloomberg: 'https://www.bloomberg.com/feed/podcast/bloomberg-surveillance.xml',
   marketwatch: 'https://feeds.marketwatch.com/marketwatch/topstories/',
@@ -56,11 +61,12 @@ const fetchGoogleFinanceSources = async () => {
       return [];
     }
 
-    // Fetch from multiple sources in parallel
+    // Fetch from multiple sources in parallel (Yahoo Finance priority)
     const newsPromises = [
+      fetchRSSFeed(NEWS_SOURCES.yahooTop, 'Yahoo Finance', 'market'),
+      fetchRSSFeed(NEWS_SOURCES.yahooMarket, 'Yahoo Market News', 'market'),
       fetchRSSFeed(NEWS_SOURCES.marketwatch, 'MarketWatch', 'market'),
-      fetchRSSFeed(NEWS_SOURCES.cnbc, 'CNBC', 'market'),
-      fetchRSSFeed(NEWS_SOURCES.yahoo, 'Yahoo Finance', 'market')
+      fetchRSSFeed(NEWS_SOURCES.cnbc, 'CNBC', 'market')
     ];
 
     const results = await Promise.allSettled(newsPromises);
@@ -82,7 +88,7 @@ const fetchGoogleFinanceSources = async () => {
       }
     });
 
-    return uniqueNews.slice(0, 15); // Limit to 15 RSS articles
+    return uniqueNews.slice(0, 20); // Limit to 20 RSS articles (more Yahoo Finance sources)
   } catch (error) {
     console.error('Error fetching Google Finance sources:', error);
     return [];
