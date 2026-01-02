@@ -4,11 +4,15 @@ import { fetchFinnhubMarketNews, isFinnhubConfigured } from './finnhubService';
 
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
-// Malaysian Financial News RSS Feeds
+// Financial News RSS Feeds (Google Finance aggregates from these sources)
 const NEWS_SOURCES = {
   yahoo: 'https://finance.yahoo.com/rss/topfinstories',
   reuters: 'https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best',
   bloomberg: 'https://www.bloomberg.com/feed/podcast/bloomberg-surveillance.xml',
+  marketwatch: 'https://feeds.marketwatch.com/marketwatch/topstories/',
+  cnbc: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',
+  seekingalpha: 'https://seekingalpha.com/feed.xml',
+  benzinga: 'https://www.benzinga.com/feed',
 };
 
 // Fallback news when API unavailable
@@ -42,6 +46,49 @@ const FALLBACK_NEWS = [
   }
 ];
 
+// Fetch news from Google Finance sources (RSS feeds)
+const fetchGoogleFinanceSources = async () => {
+  try {
+    const selectedMarket = localStorage.getItem('selectedMarket') || 'BURSA';
+
+    // Only fetch for US and GLOBAL markets (these sources are US-focused)
+    if (selectedMarket === 'BURSA') {
+      return [];
+    }
+
+    // Fetch from multiple sources in parallel
+    const newsPromises = [
+      fetchRSSFeed(NEWS_SOURCES.marketwatch, 'MarketWatch', 'market'),
+      fetchRSSFeed(NEWS_SOURCES.cnbc, 'CNBC', 'market'),
+      fetchRSSFeed(NEWS_SOURCES.yahoo, 'Yahoo Finance', 'market')
+    ];
+
+    const results = await Promise.allSettled(newsPromises);
+
+    // Combine all successful results
+    const allNews = results
+      .filter(result => result.status === 'fulfilled' && result.value.length > 0)
+      .flatMap(result => result.value);
+
+    // Remove duplicates by title
+    const uniqueNews = [];
+    const seenTitles = new Set();
+
+    allNews.forEach(article => {
+      const titleKey = article.title.toLowerCase().substring(0, 50);
+      if (!seenTitles.has(titleKey)) {
+        seenTitles.add(titleKey);
+        uniqueNews.push(article);
+      }
+    });
+
+    return uniqueNews.slice(0, 15); // Limit to 15 RSS articles
+  } catch (error) {
+    console.error('Error fetching Google Finance sources:', error);
+    return [];
+  }
+};
+
 // Fetch real financial news from RSS feeds
 export const fetchFinancialNews = async () => {
   try {
@@ -65,6 +112,20 @@ export const fetchFinancialNews = async () => {
       console.log(`✅ Loaded ${news.length} Malaysian market news articles`);
     }
 
+    // Add RSS news from Google Finance sources (MarketWatch, CNBC, etc.)
+    try {
+      console.log('📡 Fetching RSS news from Google Finance sources...');
+      const rssNews = await fetchGoogleFinanceSources();
+
+      if (rssNews && rssNews.length > 0) {
+        news = [...rssNews, ...news]
+          .sort((a, b) => b.timestamp - a.timestamp);
+        console.log(`✅ Added ${rssNews.length} articles from RSS feeds`);
+      }
+    } catch (rssError) {
+      console.warn('RSS feeds not available:', rssError.message);
+    }
+
     // Add Finnhub real-time news if API is configured
     if (isFinnhubConfigured()) {
       try {
@@ -74,8 +135,7 @@ export const fetchFinancialNews = async () => {
         if (finnhubNews && finnhubNews.length > 0) {
           // Merge Finnhub news with curated news
           news = [...finnhubNews, ...news]
-            .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, 30); // Limit to 30 total articles
+            .sort((a, b) => b.timestamp - a.timestamp);
           console.log(`✅ Added ${finnhubNews.length} real-time articles from Finnhub`);
         }
       } catch (finnhubError) {
@@ -84,6 +144,9 @@ export const fetchFinancialNews = async () => {
     } else {
       console.log('ℹ️ Finnhub API not configured. Add VITE_FINNHUB_API_KEY to .env.local for real-time news');
     }
+
+    // Limit total articles to prevent overload
+    news = news.slice(0, 40);
 
     return news;
 
