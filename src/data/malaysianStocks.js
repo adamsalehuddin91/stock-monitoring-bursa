@@ -2,31 +2,169 @@
 // Updated: 2025 - Complete coverage of all major sectors
 
 export const MALAYSIAN_STOCKS = {
-  // BLUE CHIPS - Top 30 companies by market cap
+  // BLUE CHIPS - Top 30 companies by market cap (ENHANCED with Trading Metadata)
   bluechips: [
-    { code: '1155', name: 'MAYBANK', sector: 'Banking', category: 'Blue Chip' },
-    { code: '1295', name: 'PUBLIC BANK', sector: 'Banking', category: 'Blue Chip' },
-    { code: '5347', name: 'TENAGA NASIONAL', sector: 'Utilities', category: 'Blue Chip' },
-    { code: '1023', name: 'CIMB GROUP', sector: 'Banking', category: 'Blue Chip' },
-    { code: '5819', name: 'HONG LEONG BANK', sector: 'Banking', category: 'Blue Chip' },
-    { code: '1066', name: 'RHB BANK', sector: 'Banking', category: 'Blue Chip' },
-    { code: '1015', name: 'AMMB HOLDINGS', sector: 'Banking', category: 'Blue Chip' },
-    { code: '6033', name: 'PETRONAS GAS', sector: 'Energy', category: 'Blue Chip' },
-    { code: '5168', name: 'PETRONAS CHEMICALS', sector: 'Chemicals', category: 'Blue Chip' },
-    { code: '5225', name: 'IHH HEALTHCARE', sector: 'Healthcare', category: 'Blue Chip' },
-    { code: '4715', name: 'MISC', sector: 'Shipping', category: 'Blue Chip' },
-    { code: '1082', name: 'GENTING', sector: 'Gaming', category: 'Blue Chip' },
-    { code: '3816', name: 'GENTING MALAYSIA', sector: 'Gaming', category: 'Blue Chip' },
-    { code: '4197', name: 'MAXIS', sector: 'Telco', category: 'Blue Chip' },
-    { code: '6012', name: 'DIGI', sector: 'Telco', category: 'Blue Chip' },
-    { code: '6888', name: 'AXIATA', sector: 'Telco', category: 'Blue Chip' },
-    { code: '5183', name: 'DIALOG', sector: 'Energy', category: 'Blue Chip' },
-    { code: '7277', name: 'PRESS METAL', sector: 'Materials', category: 'Blue Chip' },
-    { code: '5284', name: 'GAMUDA', sector: 'Construction', category: 'Blue Chip' },
-    { code: '4898', name: 'SIME DARBY', sector: 'Conglomerate', category: 'Blue Chip' },
-    { code: '1503', name: 'HONG LEONG FINANCIAL', sector: 'Financial Services', category: 'Blue Chip' },
-    { code: '1171', name: 'HONG LEONG INDUSTRIES', sector: 'Industrial', category: 'Blue Chip' },
-    { code: '5250', name: '7-ELEVEN MALAYSIA', sector: 'Retail', category: 'Blue Chip' }
+    {
+      code: '1155', name: 'MAYBANK', sector: 'Banking', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 25000000, volatility: 'Low', beta: 0.85, liquidity: 'High',
+      dividendYield: 6.2, peRatio: 11.5, analystRating: 'Buy',
+      syariahCompliant: true, esgRating: 'A', tradingStyle: ['Value', 'Dividend', 'Blue Chip'],
+      cmpSuitability: 'Excellent', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '1295', name: 'PUBLIC BANK', sector: 'Banking', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 18000000, volatility: 'Low', beta: 0.78, liquidity: 'High',
+      dividendYield: 5.8, peRatio: 12.3, analystRating: 'Buy',
+      syariahCompliant: false, esgRating: 'A', tradingStyle: ['Value', 'Dividend', 'Conservative'],
+      cmpSuitability: 'Excellent', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '5347', name: 'TENAGA NASIONAL', sector: 'Utilities', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 12000000, volatility: 'Low', beta: 0.65, liquidity: 'High',
+      dividendYield: 4.5, peRatio: 15.2, analystRating: 'Hold',
+      syariahCompliant: false, esgRating: 'B', tradingStyle: ['Defensive', 'Dividend', 'Blue Chip'],
+      cmpSuitability: 'Good', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    },
+    {
+      code: '1023', name: 'CIMB GROUP', sector: 'Banking', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 20000000, volatility: 'Medium', beta: 0.92, liquidity: 'High',
+      dividendYield: 5.5, peRatio: 10.8, analystRating: 'Buy',
+      syariahCompliant: false, esgRating: 'A', tradingStyle: ['Value', 'Dividend', 'Growth'],
+      cmpSuitability: 'Excellent', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '5819', name: 'HONG LEONG BANK', sector: 'Banking', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 8000000, volatility: 'Low', beta: 0.82, liquidity: 'Medium',
+      dividendYield: 6.0, peRatio: 11.2, analystRating: 'Buy',
+      syariahCompliant: false, esgRating: 'A', tradingStyle: ['Value', 'Dividend', 'Quality'],
+      cmpSuitability: 'Good', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    },
+    {
+      code: '1066', name: 'RHB BANK', sector: 'Banking', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 10000000, volatility: 'Medium', beta: 0.88, liquidity: 'High',
+      dividendYield: 5.2, peRatio: 10.5, analystRating: 'Hold',
+      syariahCompliant: false, esgRating: 'B', tradingStyle: ['Value', 'Dividend'],
+      cmpSuitability: 'Good', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    },
+    {
+      code: '1015', name: 'AMMB HOLDINGS', sector: 'Banking', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 6000000, volatility: 'Medium', beta: 0.90, liquidity: 'Medium',
+      dividendYield: 4.8, peRatio: 9.8, analystRating: 'Hold',
+      syariahCompliant: false, esgRating: 'B', tradingStyle: ['Value', 'Turnaround'],
+      cmpSuitability: 'Fair', bestTradingSession: 'Asia', watchlistPriority: 'Low'
+    },
+    {
+      code: '6033', name: 'PETRONAS GAS', sector: 'Energy', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 3500000, volatility: 'Low', beta: 0.55, liquidity: 'Medium',
+      dividendYield: 5.8, peRatio: 18.5, analystRating: 'Buy',
+      syariahCompliant: true, esgRating: 'B', tradingStyle: ['Defensive', 'Dividend', 'Infrastructure'],
+      cmpSuitability: 'Good', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '5168', name: 'PETRONAS CHEMICALS', sector: 'Chemicals', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 8500000, volatility: 'Medium', beta: 1.05, liquidity: 'High',
+      dividendYield: 4.2, peRatio: 14.8, analystRating: 'Hold',
+      syariahCompliant: true, esgRating: 'B', tradingStyle: ['Cyclical', 'Value'],
+      cmpSuitability: 'Good', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    },
+    {
+      code: '5225', name: 'IHH HEALTHCARE', sector: 'Healthcare', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 12000000, volatility: 'Medium', beta: 0.75, liquidity: 'High',
+      dividendYield: 2.5, peRatio: 22.5, analystRating: 'Buy',
+      syariahCompliant: true, esgRating: 'A', tradingStyle: ['Growth', 'Defensive', 'Quality'],
+      cmpSuitability: 'Excellent', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '4715', name: 'MISC', sector: 'Shipping', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 2500000, volatility: 'Medium', beta: 0.95, liquidity: 'Low',
+      dividendYield: 3.8, peRatio: 12.2, analystRating: 'Hold',
+      syariahCompliant: true, esgRating: 'C', tradingStyle: ['Cyclical', 'Value'],
+      cmpSuitability: 'Fair', bestTradingSession: 'Asia', watchlistPriority: 'Low'
+    },
+    {
+      code: '1082', name: 'GENTING', sector: 'Gaming', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 15000000, volatility: 'High', beta: 1.25, liquidity: 'High',
+      dividendYield: 1.2, peRatio: 28.5, analystRating: 'Buy',
+      syariahCompliant: false, esgRating: 'C', tradingStyle: ['Growth', 'Speculative', 'Tourism'],
+      cmpSuitability: 'Fair', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    },
+    {
+      code: '3816', name: 'GENTING MALAYSIA', sector: 'Gaming', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 18000000, volatility: 'High', beta: 1.35, liquidity: 'High',
+      dividendYield: 0.8, peRatio: 32.0, analystRating: 'Hold',
+      syariahCompliant: false, esgRating: 'C', tradingStyle: ['Growth', 'Speculative', 'Recovery'],
+      cmpSuitability: 'Poor', bestTradingSession: 'Asia', watchlistPriority: 'Low'
+    },
+    {
+      code: '4197', name: 'MAXIS', sector: 'Telco', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 5000000, volatility: 'Low', beta: 0.62, liquidity: 'Medium',
+      dividendYield: 6.8, peRatio: 16.5, analystRating: 'Buy',
+      syariahCompliant: true, esgRating: 'A', tradingStyle: ['Dividend', 'Defensive', 'Quality'],
+      cmpSuitability: 'Excellent', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '6012', name: 'DIGI', sector: 'Telco', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 8000000, volatility: 'Low', beta: 0.58, liquidity: 'High',
+      dividendYield: 7.2, peRatio: 15.8, analystRating: 'Buy',
+      syariahCompliant: true, esgRating: 'A', tradingStyle: ['Dividend', 'Defensive', 'Stable'],
+      cmpSuitability: 'Excellent', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '6888', name: 'AXIATA', sector: 'Telco', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 10000000, volatility: 'Medium', beta: 0.85, liquidity: 'High',
+      dividendYield: 5.5, peRatio: 18.2, analystRating: 'Hold',
+      syariahCompliant: true, esgRating: 'B', tradingStyle: ['Dividend', 'Regional', 'Turnaround'],
+      cmpSuitability: 'Good', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    },
+    {
+      code: '5183', name: 'DIALOG', sector: 'Energy', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 7000000, volatility: 'Medium', beta: 0.95, liquidity: 'High',
+      dividendYield: 3.2, peRatio: 16.8, analystRating: 'Buy',
+      syariahCompliant: true, esgRating: 'B', tradingStyle: ['Growth', 'Infrastructure', 'Energy'],
+      cmpSuitability: 'Good', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '7277', name: 'PRESS METAL', sector: 'Materials', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 22000000, volatility: 'High', beta: 1.45, liquidity: 'High',
+      dividendYield: 2.8, peRatio: 12.5, analystRating: 'Buy',
+      syariahCompliant: true, esgRating: 'C', tradingStyle: ['Cyclical', 'Commodity', 'Momentum'],
+      cmpSuitability: 'Fair', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    },
+    {
+      code: '5284', name: 'GAMUDA', sector: 'Construction', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 12000000, volatility: 'Medium', beta: 1.05, liquidity: 'High',
+      dividendYield: 3.5, peRatio: 14.2, analystRating: 'Buy',
+      syariahCompliant: true, esgRating: 'B', tradingStyle: ['Growth', 'Infrastructure', 'Quality'],
+      cmpSuitability: 'Good', bestTradingSession: 'Asia', watchlistPriority: 'High'
+    },
+    {
+      code: '5681', name: 'SIME DARBY PLANTATION', sector: 'Plantation', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 15000000, volatility: 'High', beta: 1.15, liquidity: 'High',
+      dividendYield: 4.2, peRatio: 18.5, analystRating: 'Hold',
+      syariahCompliant: true, esgRating: 'C', tradingStyle: ['Cyclical', 'Commodity', 'ESG Risk'],
+      cmpSuitability: 'Fair', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    },
+    {
+      code: '1503', name: 'HONG LEONG FINANCIAL', sector: 'Financial Services', category: 'Blue Chip',
+      marketCap: 'Large', avgVolume: 1500000, volatility: 'Low', beta: 0.72, liquidity: 'Low',
+      dividendYield: 5.5, peRatio: 13.5, analystRating: 'Hold',
+      syariahCompliant: false, esgRating: 'B', tradingStyle: ['Value', 'Dividend', 'Conglomerate'],
+      cmpSuitability: 'Fair', bestTradingSession: 'Asia', watchlistPriority: 'Low'
+    },
+    {
+      code: '1171', name: 'HONG LEONG INDUSTRIES', sector: 'Industrial', category: 'Blue Chip',
+      marketCap: 'Medium', avgVolume: 800000, volatility: 'Medium', beta: 0.95, liquidity: 'Low',
+      dividendYield: 4.0, peRatio: 11.8, analystRating: 'Hold',
+      syariahCompliant: true, esgRating: 'B', tradingStyle: ['Value', 'Manufacturing'],
+      cmpSuitability: 'Poor', bestTradingSession: 'Asia', watchlistPriority: 'Low'
+    },
+    {
+      code: '5250', name: '7-ELEVEN MALAYSIA', sector: 'Retail', category: 'Blue Chip',
+      marketCap: 'Medium', avgVolume: 1200000, volatility: 'Medium', beta: 0.88, liquidity: 'Low',
+      dividendYield: 3.8, peRatio: 19.5, analystRating: 'Buy',
+      syariahCompliant: false, esgRating: 'B', tradingStyle: ['Growth', 'Consumer', 'Retail'],
+      cmpSuitability: 'Fair', bestTradingSession: 'Asia', watchlistPriority: 'Medium'
+    }
   ],
 
   // GROWTH STOCKS - High potential companies
@@ -217,10 +355,26 @@ export const searchStocks = (query) => {
 
 // Default watchlist (top performers + high potential)
 export const DEFAULT_WATCHLIST = [
-  '1155', '1295', '5347', '1023', '0123', // Banking + Tech star
-  '5168', '7277', '5284', '7113', '0097', // Chemicals, Materials, Construction, Top Glove, Brewery
-  '1082', '6888', '5183', '1961', '5141', // Gaming, Telco, Energy, IOI Corp, F&B
-  '6742', '5125', '6399', '5231', '2445'  // YTL Power, Tech, Property, F&B, KL Kepong
+  // Banking Blue Chips (6 stocks)
+  '1155', '1295', '1023', '1066', '5819', '1015', // Maybank, Public Bank, CIMB, RHB, HLB, AMMB
+
+  // Energy & Utilities (4 stocks)
+  '5347', '6033', '5168', '5183', // Tenaga, Petronas Gas, Petronas Chem, Dialog
+
+  // Technology & Semiconductors (5 stocks)
+  '0123', '5125', '5236', '5285', '7773', // Inari, Vitrox, Unisem, Greatech, MPI
+
+  // Consumer & Retail (4 stocks)
+  '0097', '5141', '4456', '5250', // Carlsberg, Nestle, Mr DIY, 7-Eleven
+
+  // Telco & Gaming (4 stocks)
+  '4197', '6012', '6888', '1082', // Maxis, Digi, Axiata, Genting
+
+  // Property & Construction (3 stocks)
+  '5284', '6399', '5681', // Gamuda, Sunway, Sime Darby Plantation
+
+  // Materials & Gloves (4 stocks)
+  '7277', '7113', '6742', '2445'  // Press Metal, Topglove, YTL Power, KL Kepong
 ];
 
 export default {

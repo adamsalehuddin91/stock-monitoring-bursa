@@ -71,7 +71,7 @@ function Watchlist() {
 
     if (migrated) {
       console.log('🔄 Stock codes migrated successfully!');
-      localStorage.setItem('stockWatchlist', JSON.stringify(codes));
+      localStorage.setItem(storageKey, JSON.stringify(codes));
     }
 
     return codes;
@@ -83,17 +83,37 @@ function Watchlist() {
   }, [selectedMarket]);
 
   // Save to localStorage whenever watchlist changes
-  // NOTE: Only depends on watchlistCodes, NOT selectedMarket (to avoid race condition)
+  // IMPORTANT: Depends on both watchlistCodes AND selectedMarket to ensure correct storage key
   useEffect(() => {
     const storageKey = `stockWatchlist_${selectedMarket}`;
     localStorage.setItem(storageKey, JSON.stringify(watchlistCodes));
-  }, [watchlistCodes]);
+  }, [watchlistCodes, selectedMarket]);
 
   // Reload watchlist when market changes
   useEffect(() => {
     const storageKey = `stockWatchlist_${selectedMarket}`;
     const saved = localStorage.getItem(storageKey);
-    const codes = saved ? JSON.parse(saved) : getDefaultWatchlist(selectedMarket);
+    let codes = saved ? JSON.parse(saved) : getDefaultWatchlist(selectedMarket);
+
+    // 🔧 VALIDATION: Check for corrupted data (Malaysian codes in US market or vice versa)
+    if (selectedMarket === 'US') {
+      // US codes should be alphabetic (AAPL, TSLA, etc), not numeric (1155, 1295, etc)
+      const hasInvalidCodes = codes.some(code => /^\d+$/.test(code));
+      if (hasInvalidCodes) {
+        console.warn('⚠️ Detected Malaysian codes in US market! Clearing and using defaults...');
+        localStorage.removeItem(storageKey);
+        codes = getDefaultWatchlist(selectedMarket);
+      }
+    } else if (selectedMarket === 'BURSA') {
+      // Malaysian codes should be numeric (1155, 5347, etc), not alphabetic stock symbols
+      const hasInvalidCodes = codes.some(code => /^[A-Z]+$/.test(code));
+      if (hasInvalidCodes) {
+        console.warn('⚠️ Detected US codes in Malaysian market! Clearing and using defaults...');
+        localStorage.removeItem(storageKey);
+        codes = getDefaultWatchlist(selectedMarket);
+      }
+    }
+
     setWatchlistCodes(codes);
   }, [selectedMarket]);
 

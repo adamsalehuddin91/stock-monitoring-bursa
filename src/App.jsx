@@ -18,6 +18,7 @@ import Alerts from './pages/Alerts';
 import News from './pages/News';
 import DailyChecklist from './pages/DailyChecklist';
 import StockDetail from './pages/StockDetail';
+import StockScreener from './pages/StockScreener';
 
 // PWA Install Prompt
 import InstallPWA from './components/InstallPWA';
@@ -41,6 +42,7 @@ function App() {
         <Route path="/stock/:stockCode" element={<StockDetail />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/news" element={<News />} />
+        <Route path="/stock-screener" element={<StockScreener />} />
         <Route path="/checklist" element={<DailyChecklist />} />
         <Route path="/original-dashboard" element={<Dashboard />} />
       </Routes>
