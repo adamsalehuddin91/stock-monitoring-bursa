@@ -19,6 +19,7 @@ import News from './pages/News';
 import DailyChecklist from './pages/DailyChecklist';
 import StockDetail from './pages/StockDetail';
 import StockScreener from './pages/StockScreener';
+import FcpoReport from './pages/FcpoReport';
 
 // PWA Install Prompt
 import InstallPWA from './components/InstallPWA';
@@ -43,6 +44,7 @@ function App() {
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/news" element={<News />} />
         <Route path="/stock-screener" element={<StockScreener />} />
+        <Route path="/fcpo" element={<FcpoReport />} />
         <Route path="/checklist" element={<DailyChecklist />} />
         <Route path="/original-dashboard" element={<Dashboard />} />
       </Routes>
