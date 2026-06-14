@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, List, Wallet, Bell, Newspaper, CheckSquare, TrendingUp, Filter, Sparkles } from 'lucide-react';
+import { LayoutDashboard, List, Bell, Newspaper, TrendingUp, Filter, Sparkles } from 'lucide-react';
 
 function StockSidebar({ sidebarOpen, setSidebarOpen }) {
   const trigger = useRef(null);
@@ -62,17 +62,17 @@ function StockSidebar({ sidebarOpen, setSidebarOpen }) {
           <NavLink end to="/" className="block">
             <div className="flex items-center">
               <TrendingUp className="w-8 h-8 text-blue-500" />
-              <span className="ml-2 text-lg font-bold text-gray-800 dark:text-gray-100">Bursa Monitor</span>
+              <span className="ml-2 text-lg font-bold text-gray-800 dark:text-gray-100">SwiftSignal</span>
             </div>
           </NavLink>
         </div>
 
         {/* Links */}
         <div className="space-y-8">
-          {/* Stock Monitoring group */}
+          {/* Markets & AI group */}
           <div>
             <h3 className="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3 mb-3">
-              Stock Monitoring
+              Pasaran & AI
             </h3>
             <ul className="space-y-1">
               {/* Dashboard */}
@@ -106,7 +106,7 @@ function StockSidebar({ sidebarOpen, setSidebarOpen }) {
                   }
                 >
                   <Sparkles className="w-5 h-5 mr-3" />
-                  <span className="text-sm font-medium">Laporan AI FCPO</span>
+                  <span className="text-sm font-medium">Laporan AI Komoditi</span>
                 </NavLink>
               </li>
 
@@ -124,23 +124,6 @@ function StockSidebar({ sidebarOpen, setSidebarOpen }) {
                 >
                   <List className="w-5 h-5 mr-3" />
                   <span className="text-sm font-medium">Watchlist</span>
-                </NavLink>
-              </li>
-
-              {/* Portfolio */}
-              <li>
-                <NavLink
-                  to="/portfolio"
-                  className={({ isActive }) =>
-                    `flex items-center px-3 py-2 rounded-lg transition duration-150 ${
-                      isActive
-                        ? "bg-blue-500 text-white"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`
-                  }
-                >
-                  <Wallet className="w-5 h-5 mr-3" />
-                  <span className="text-sm font-medium">Portfolio</span>
                 </NavLink>
               </li>
 
@@ -192,23 +175,6 @@ function StockSidebar({ sidebarOpen, setSidebarOpen }) {
                 >
                   <Newspaper className="w-5 h-5 mr-3" />
                   <span className="text-sm font-medium">News</span>
-                </NavLink>
-              </li>
-
-              {/* Daily Checklist */}
-              <li>
-                <NavLink
-                  to="/checklist"
-                  className={({ isActive }) =>
-                    `flex items-center px-3 py-2 rounded-lg transition duration-150 ${
-                      isActive
-                        ? "bg-blue-500 text-white"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    }`
-                  }
-                >
-                  <CheckSquare className="w-5 h-5 mr-3" />
-                  <span className="text-sm font-medium">Daily Checklist</span>
                 </NavLink>
               </li>
             </ul>

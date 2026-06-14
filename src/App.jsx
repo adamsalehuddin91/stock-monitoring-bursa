@@ -10,13 +10,10 @@ import './css/style.css';
 import './charts/ChartjsConfig';
 
 // Import pages
-import Dashboard from './pages/Dashboard';
 import StockDashboard from './pages/StockDashboard';
 import Watchlist from './pages/Watchlist';
-import Portfolio from './pages/Portfolio';
 import Alerts from './pages/Alerts';
 import News from './pages/News';
-import DailyChecklist from './pages/DailyChecklist';
 import StockDetail from './pages/StockDetail';
 import StockScreener from './pages/StockScreener';
 import FcpoReport from './pages/FcpoReport';
@@ -39,14 +36,11 @@ function App() {
       <Routes>
         <Route exact path="/" element={<StockDashboard />} />
         <Route path="/watchlist" element={<Watchlist />} />
-        <Route path="/portfolio" element={<Portfolio />} />
         <Route path="/stock/:stockCode" element={<StockDetail />} />
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/news" element={<News />} />
         <Route path="/stock-screener" element={<StockScreener />} />
         <Route path="/fcpo" element={<FcpoReport />} />
-        <Route path="/checklist" element={<DailyChecklist />} />
-        <Route path="/original-dashboard" element={<Dashboard />} />
       </Routes>
 
       {/* PWA Install Prompt */}

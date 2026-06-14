@@ -51,7 +51,7 @@ function Header({
           <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-                📊 Bursa Malaysia Stock Monitor
+                📊 SwiftSignal
               </h1>
               <div className="flex items-center space-x-2">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

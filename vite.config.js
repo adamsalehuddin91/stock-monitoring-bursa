@@ -32,8 +32,8 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: 'Global Stock Monitor',
-        short_name: 'Stock Monitor',
+        name: 'SwiftSignal',
+        short_name: 'SwiftSignal',
         description: 'Real-time global stock market monitoring (Malaysia + US) with portfolio tracking, alerts, and advanced filtering',
         theme_color: '#3b82f6',
         background_color: '#1f2937',

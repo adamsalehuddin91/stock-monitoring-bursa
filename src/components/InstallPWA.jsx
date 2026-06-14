@@ -89,7 +89,7 @@ function InstallPWA() {
 
           <div className="flex-1">
             <h3 className="font-bold text-lg mb-1">
-              Install Stock Monitor
+              Install SwiftSignal
             </h3>
             <p className="text-sm text-blue-100 mb-4">
               Install our app for quick access, offline support, and better performance!

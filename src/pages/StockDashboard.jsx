@@ -29,7 +29,7 @@ function StockDashboard() {
             {/* Dashboard header */}
             <div className="sm:flex sm:justify-between sm:items-center mb-8">
               <div className="mb-4 sm:mb-0">
-                <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Bursa Malaysia Stock Monitor</h1>
+                <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">SwiftSignal</h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Real-time market data and trading insights</p>
               </div>
 
