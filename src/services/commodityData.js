@@ -1,8 +1,12 @@
 // Generic commodity data layer — FCPO + Gold (extensible).
 // Free data via the existing Yahoo proxy. Same indicator engine for all.
-import { analyzeSeries } from './indicators'
+import { analyzeSeries } from './indicators.js'
 
-const YAHOO = '/api/yahoo/v8/finance/chart'
+// Isomorphic: browser → CORS proxy; server (cron) → Yahoo direct.
+const isServer = typeof window === 'undefined'
+const YAHOO = isServer
+  ? 'https://query1.finance.yahoo.com/v8/finance/chart'
+  : '/api/yahoo/v8/finance/chart'
 
 export const COMMODITIES = {
   fcpo: {
@@ -20,7 +24,8 @@ export const COMMODITIES = {
 }
 
 async function fetchCandles(symbol, { range = '6mo', interval = '1d' } = {}) {
-  const res = await fetch(`${YAHOO}/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`)
+  const res = await fetch(`${YAHOO}/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`,
+    isServer ? { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' } } : undefined)
   if (!res.ok) throw new Error(`Yahoo ${symbol} ${res.status}`)
   const r = (await res.json())?.chart?.result?.[0]
   if (!r) throw new Error(`No data for ${symbol}`)

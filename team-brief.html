@@ -1,0 +1,540 @@
+<style>
+  :root {
+    /* light (blue-biased, chosen not defaulted) */
+    --bg: #EAEEF5;
+    --surface: #FFFFFF;
+    --surface-2: #F3F6FB;
+    --border: rgba(20,32,58,0.11);
+    --border-strong: rgba(20,32,58,0.18);
+    --ink: #0E141F;
+    --ink-muted: #55617A;
+    --ink-faint: #8792A6;
+    --accent: #3B54C9;
+    --accent-2: #5B54E0;
+    --good: #0C9A6A;
+    --warn: #B0650B;
+    --bad: #D23B3B;
+    --glow: rgba(59,84,201,0.14);
+    --radar: rgba(59,84,201,0.55);
+    --shadow: 0 1px 2px rgba(20,32,58,.06), 0 8px 30px rgba(20,32,58,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #080B12;
+      --surface: rgba(255,255,255,0.026);
+      --surface-2: rgba(255,255,255,0.045);
+      --border: rgba(255,255,255,0.085);
+      --border-strong: rgba(255,255,255,0.16);
+      --ink: #E7ECF5;
+      --ink-muted: #98A3B9;
+      --ink-faint: #667186;
+      --accent: #5B8DEF;
+      --accent-2: #8A8CF6;
+      --good: #34D399;
+      --warn: #FBBF24;
+      --bad: #F87171;
+      --glow: rgba(91,141,239,0.20);
+      --radar: rgba(91,141,239,0.7);
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #EAEEF5; --surface: #FFFFFF; --surface-2: #F3F6FB;
+    --border: rgba(20,32,58,0.11); --border-strong: rgba(20,32,58,0.18);
+    --ink: #0E141F; --ink-muted: #55617A; --ink-faint: #8792A6;
+    --accent: #3B54C9; --accent-2: #5B54E0;
+    --good: #0C9A6A; --warn: #B0650B; --bad: #D23B3B;
+    --glow: rgba(59,84,201,0.14); --radar: rgba(59,84,201,0.55);
+    --shadow: 0 1px 2px rgba(20,32,58,.06), 0 8px 30px rgba(20,32,58,.07);
+  }
+  :root[data-theme="dark"] {
+    --bg: #080B12; --surface: rgba(255,255,255,0.026); --surface-2: rgba(255,255,255,0.045);
+    --border: rgba(255,255,255,0.085); --border-strong: rgba(255,255,255,0.16);
+    --ink: #E7ECF5; --ink-muted: #98A3B9; --ink-faint: #667186;
+    --accent: #5B8DEF; --accent-2: #8A8CF6;
+    --good: #34D399; --warn: #FBBF24; --bad: #F87171;
+    --glow: rgba(91,141,239,0.20); --radar: rgba(91,141,239,0.7);
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(120% 60% at 100% -10%, var(--glow), transparent 60%),
+      var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+    line-height: 1.6;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace; }
+
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 22px; }
+
+  /* ---- topbar ---- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--bg) 78%, transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar .row { display: flex; align-items: center; gap: 14px; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 650; letter-spacing: -.01em; }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+  .brand .sep { color: var(--ink-faint); font-weight: 400; }
+  .brand .sub { color: var(--ink-muted); font-weight: 500; }
+  .tag {
+    margin-left: auto; font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-muted); border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px;
+  }
+  .toggle {
+    display: inline-grid; place-items: center; width: 34px; height: 34px;
+    border-radius: 9px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink); cursor: pointer; font-size: 15px;
+  }
+  .toggle:hover { border-color: var(--border-strong); }
+  .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- masthead ---- */
+  header.hero { padding: 54px 0 30px; }
+  .hero-grid { display: grid; grid-template-columns: 148px 1fr; gap: 30px; align-items: center; }
+  h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.04; letter-spacing: -.03em; margin: 6px 0 12px; text-wrap: balance; }
+  h1 .accent { background: linear-gradient(100deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lede { font-size: 18px; color: var(--ink-muted); max-width: 60ch; margin: 0; }
+  .eyebrow { font-size: 11.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+
+  .metastrip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px;
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 11px; background: var(--surface);
+    color: var(--ink-muted);
+  }
+  .chip b { color: var(--ink); font-weight: 600; }
+  .chip .ok { color: var(--good); }
+
+  /* radar */
+  .radar { position: relative; width: 148px; height: 148px; }
+  .radar .ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--border-strong); }
+  .radar .ring.r2 { inset: 26px; }
+  .radar .ring.r3 { inset: 52px; opacity: .7; }
+  .radar .cross, .radar .cross:after { position: absolute; background: var(--border-strong); }
+  .radar .cross { left: 50%; top: 0; width: 1px; height: 100%; transform: translateX(-.5px); }
+  .radar .cross:after { content: ""; left: -74px; top: 50%; width: 148px; height: 1px; }
+  .radar .sweep {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, transparent 300deg, var(--radar) 358deg, transparent 360deg);
+    animation: spin 3.6s linear infinite;
+    mask: radial-gradient(circle, #000 68%, transparent 69%);
+    -webkit-mask: radial-gradient(circle, #000 68%, transparent 69%);
+  }
+  .radar .blip { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .radar .b1 { left: 66%; top: 34%; animation: pulse 3.6s ease-in-out infinite; }
+  .radar .b2 { left: 38%; top: 60%; animation: pulse 3.6s ease-in-out .9s infinite; }
+  .radar .core { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: var(--accent-2); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,70%,100% { opacity: .25; } 82% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .radar .sweep { animation: none; } .radar .blip { animation: none; opacity: .8; } }
+
+  /* ---- sections ---- */
+  section { padding: 30px 0; border-top: 1px solid var(--border); }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; }
+  .sec-head .n { font-size: 12px; color: var(--ink-faint); letter-spacing: .1em; }
+  h2 { font-size: 23px; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+  .sec-sub { color: var(--ink-muted); margin: -6px 0 20px; max-width: 68ch; }
+
+  .grid { display: grid; gap: 14px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 17px 17px 16px; box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 6px; font-size: 15.5px; letter-spacing: -.01em; }
+  .card p { margin: 0; color: var(--ink-muted); font-size: 14px; }
+
+  /* module cards */
+  .mod .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .mod .em { font-size: 22px; }
+  .mod .name { font-weight: 650; }
+  .mod .src { font-size: 11.5px; color: var(--ink-faint); }
+  .pill { font-size: 11px; font-weight: 650; letter-spacing: .03em; padding: 3px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+  .pill.bull { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); border-color: color-mix(in srgb, var(--good) 32%, transparent); }
+  .pill.neut { color: var(--ink-muted); background: color-mix(in srgb, var(--ink-muted) 12%, transparent); border-color: var(--border-strong); }
+  .pill.bear { color: var(--bad); background: color-mix(in srgb, var(--bad) 13%, transparent); border-color: color-mix(in srgb, var(--bad) 32%, transparent); }
+  .mod .score { font-size: 13px; color: var(--ink-muted); }
+  .mod .score b { color: var(--ink); }
+
+  /* delivery strip / pipeline */
+  .pipe { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; }
+  .pnode { flex: 1 1 130px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; }
+  .pnode .k { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .pnode .v { font-weight: 600; font-size: 14.5px; margin-top: 3px; }
+  .pnode .d { font-size: 12.5px; color: var(--ink-muted); margin-top: 3px; }
+  .parrow { align-self: center; color: var(--ink-faint); font-size: 18px; }
+
+  /* two-column ini/bukan */
+  .stack { display: flex; flex-direction: column; gap: 9px; }
+  .line { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; }
+  .line .mk { flex: none; width: 18px; text-align: center; font-weight: 700; }
+  .line.is .mk { color: var(--good); }
+  .line.no .mk { color: var(--bad); }
+  .line span { color: var(--ink-muted); }
+  .line b { color: var(--ink); font-weight: 600; }
+
+  /* table */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+  th, td { text-align: left; padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td .can { color: var(--good); font-weight: 600; }
+  td .cant { color: var(--bad); font-weight: 600; }
+
+  /* extension points */
+  .xp .card { display: flex; flex-direction: column; gap: 9px; }
+  .xp .where { font-size: 11.5px; color: var(--ink-faint); }
+  .xp .where code { background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: 12px; color: var(--accent-2); }
+  .xp .decide { font-size: 13px; color: var(--ink); background: var(--surface-2); border-left: 2px solid var(--accent); border-radius: 0 8px 8px 0; padding: 8px 11px; }
+  .xp .decide b { color: var(--accent); }
+
+  /* worksheet */
+  .work { counter-reset: q; display: grid; gap: 11px; }
+  .qrow { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px; }
+  .qrow::before { counter-increment: q; content: "Q" counter(q); font-size: 12px; font-weight: 700; color: var(--accent); }
+  .qrow .q { font-weight: 600; font-size: 14.5px; }
+  .qrow .hint { font-size: 13px; color: var(--ink-muted); margin-top: 2px; }
+  .qrow .hint em { color: var(--accent-2); font-style: normal; }
+
+  /* roadmap */
+  .road { display: grid; gap: 12px; grid-template-columns: repeat(3,1fr); }
+  .phase { border: 1px solid var(--border); border-radius: 14px; padding: 16px; background: var(--surface); }
+  .phase .ph { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 650; }
+  .phase h3 { margin: 4px 0 8px; font-size: 16px; }
+  .phase ul { margin: 0; padding-left: 17px; color: var(--ink-muted); font-size: 13.5px; }
+  .phase li { margin: 3px 0; }
+  .phase .cost { margin-top: 11px; font-size: 13px; }
+  .phase .cost b { color: var(--ink); }
+
+  /* checklist */
+  .checklist { display: grid; gap: 8px; }
+  .citem { display: flex; gap: 11px; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; font-size: 14px; }
+  .citem .box { flex: none; width: 17px; height: 17px; margin-top: 1px; border: 1.5px solid var(--border-strong); border-radius: 5px; }
+  .citem .who { margin-left: auto; font-size: 11px; color: var(--ink-faint); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  .citem b { color: var(--ink); }
+  .citem span { color: var(--ink-muted); }
+
+  /* callout */
+  .callout { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; display: flex; gap: 13px; }
+  .callout .i { flex: none; font-size: 18px; }
+  .callout p { margin: 0; font-size: 14px; color: var(--ink-muted); }
+  .callout b { color: var(--ink); }
+
+  footer { padding: 34px 0 50px; border-top: 1px solid var(--border); margin-top: 8px; color: var(--ink-faint); font-size: 13px; }
+  footer .disc { color: var(--ink-muted); max-width: 70ch; }
+  footer .sig { margin-top: 12px; }
+  footer .sig b { color: var(--ink-muted); }
+
+  @media (max-width: 760px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 22px; }
+    .radar { order: -1; }
+    .g2, .g3, .g4, .road { grid-template-columns: 1fr; }
+    .g4 { grid-template-columns: 1fr 1fr; }
+    .tag { display: none; }
+  }
+  @media (max-width: 460px) { .g4 { grid-template-columns: 1fr; } }
+</style>
+
+<div class="topbar">
+  <div class="wrap row">
+    <span class="brand"><span class="dot"></span> SwiftSignal <span class="sep">▸</span> <span class="sub mono">TradeRadar</span></span>
+    <span class="tag">Internal Team Brief</span>
+    <button class="toggle" id="themeBtn" aria-label="Tukar tema" title="Tukar tema">◐</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-grid">
+      <div class="radar" aria-hidden="true">
+        <div class="ring"></div><div class="ring r2"></div><div class="ring r3"></div>
+        <div class="cross"></div>
+        <div class="sweep"></div>
+        <div class="blip b1"></div><div class="blip b2"></div>
+        <div class="core"></div>
+      </div>
+      <div>
+        <div class="eyebrow">Sistem Analisis Sentimen Pasukan</div>
+        <h1>Satu radar. <span class="accent">Satu bahasa pasaran.</span></h1>
+        <p class="lede">SwiftSignal membaca FCPO, pasaran global, Bursa Malaysia dan crypto — kemudian bagi kita satu bacaan sentimen yang <b>konsisten dan tanpa emosi</b>, supaya team masuk bincang dengan radar yang sama, bukan sepuluh pendapat.</p>
+        <div class="metastrip mono">
+          <span class="chip"><span class="ok">●</span> Backbone <b>verified</b></span>
+          <span class="chip"><b>4</b> modul aset</span>
+          <span class="chip">Telegram <b>+</b> Web + Supabase</span>
+          <span class="chip">Kemas kini <b>3 Julai 2026</b></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- APA INI / BUKAN -->
+  <section>
+    <div class="sec-head"><span class="n mono">01</span><h2>Apa ini — dan apa ini bukan</h2></div>
+    <p class="sec-sub">Kalibrasi ini penting sebelum kita bina. Salah faham di sini = team kecewa kemudian.</p>
+    <div class="grid g2">
+      <div class="card">
+        <div class="stack">
+          <div class="line is"><span class="mk">✓</span><span><b>Sentiment radar</b> — bacaan pasaran konsisten setiap hari, tanpa FOMO.</span></div>
+          <div class="line is"><span class="mk">✓</span><span><b>Struktur</b> — skor 0–100, key level, senario bull/bear, invalidation.</span></div>
+          <div class="line is"><span class="mk">✓</span><span><b>Penapis idea</b> — tunjuk mana ada momentum + volume untuk disiasat.</span></div>
+          <div class="line is"><span class="mk">✓</span><span><b>Alat disiplin</b> — kurangkan keputusan ikut emosi.</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="stack">
+          <div class="line no"><span class="mk">✕</span><span><b>Bukan signal auto</b> — dia tak cakap "beli sekarang".</span></div>
+          <div class="line no"><span class="mk">✕</span><span><b>Bukan jaminan profit</b> — tiada sistem boleh janji itu.</span></div>
+          <div class="line no"><span class="mk">✕</span><span><b>Bukan oracle</b> — ketepatan terikat pada kualiti data masuk.</span></div>
+          <div class="line no"><span class="mk">✕</span><span><b>Bukan pengganti chart kau</b> — output = idea untuk disahkan sendiri.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:14px;">
+      <span class="i">⚠️</span>
+      <p><b>Prinsip teras:</b> AI perbaiki <b>naratif</b>, dia tak perbaiki <b>data</b>. Treat setiap output sebagai <b>"arah + idea untuk disahkan atas chart"</b> — bukan butang entry. Team yang faham ini guna dengan betul.</p>
+    </div>
+  </section>
+
+  <!-- STATUS -->
+  <section>
+    <div class="sec-head"><span class="n mono">02</span><h2>Status sekarang — 4 modul, sudah hidup</h2></div>
+    <p class="sec-sub">Backbone sudah dibina & diuji dengan data betul. Skor di bawah = bacaan sebenar semasa ujian (contoh output, akan berubah ikut pasaran).</p>
+    <div class="grid g4 mod">
+      <div class="card">
+        <div class="top"><span class="em">🌴</span><span class="pill bear mono">Weak</span></div>
+        <div class="name">FCPO</div>
+        <div class="src mono">CPO=F · ZL=F · USDMYR</div>
+        <div class="score mono" style="margin-top:8px;">skor <b>2</b> · sup 1107 / res 1188</div>
+      </div>
+      <div class="card">
+        <div class="top"><span class="em">🌍</span><span class="pill neut mono">Neutral</span></div>
+        <div class="name">Global</div>
+        <div class="src mono">S&P · NDX · VIX · DXY</div>
+        <div class="score mono" style="margin-top:8px;">skor <b>53</b> · risk campur</div>
+      </div>
+      <div class="card">
+        <div class="top"><span class="em">🇲🇾</span><span class="pill neut mono">Watchlist</span></div>
+        <div class="name">Bursa</div>
+        <div class="src mono">Maybank · CIMB · TNB…</div>
+        <div class="score mono" style="margin-top:8px;">EOD · watchlist manual</div>
+      </div>
+      <div class="card">
+        <div class="top"><span class="em">₿</span><span class="pill bull mono">Bullish</span></div>
+        <div class="name">Crypto</div>
+        <div class="src mono">BTC · ETH · SOL · BNB</div>
+        <div class="score mono" style="margin-top:8px;">skor <b>56</b> · real-time</div>
+      </div>
+    </div>
+    <div class="pipe" style="margin-top:20px;">
+      <div class="pnode"><div class="k">Hantar</div><div class="v">Telegram</div><div class="d">3× sehari — pagi / FCPO / malam</div></div>
+      <div class="pnode"><div class="k">Papar</div><div class="v">Web Dashboard</div><div class="d">SwiftSignal (sedia ada)</div></div>
+      <div class="pnode"><div class="k">Simpan</div><div class="v">Supabase</div><div class="d">log sentimen + watchlist + paper trade</div></div>
+      <div class="pnode"><div class="k">AI</div><div class="v">Claude Sonnet</div><div class="d">naratif · demo mode free</div></div>
+    </div>
+  </section>
+
+  <!-- MACAM MANA -->
+  <section>
+    <div class="sec-head"><span class="n mono">03</span><h2>Macam mana ia berfungsi</h2></div>
+    <p class="sec-sub">Satu enjin, dua muka — laporan sama render di web <em>dan</em> push ke Telegram.</p>
+    <div class="pipe">
+      <div class="pnode"><div class="k mono">1 — Ambil</div><div class="v">Data</div><div class="d">Yahoo (global/FCPO/Bursa) + Binance (crypto)</div></div>
+      <span class="parrow">→</span>
+      <div class="pnode"><div class="k mono">2 — Kira</div><div class="v">Scoring Engine</div><div class="d">RSI · MACD · SMA · S/R → skor 0–100</div></div>
+      <span class="parrow">→</span>
+      <div class="pnode"><div class="k mono">3 — Fahami</div><div class="v">Claude AI</div><div class="d">naratif ringkas + senario</div></div>
+      <span class="parrow">→</span>
+      <div class="pnode"><div class="k mono">4 — Sampai</div><div class="v">Telegram + Log</div><div class="d">push + simpan Supabase</div></div>
+    </div>
+  </section>
+
+  <!-- BOLEH VS TAK BOLEH -->
+  <section>
+    <div class="sec-head"><span class="n mono">04</span><h2>Boleh vs tak boleh — jujur</h2></div>
+    <p class="sec-sub">Realiti data pasaran Malaysia, disahkan: FCPO/Bursa real-time tiada API murah. Ini bukan kelemahan sistem — ini keadaan pasaran.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Modul</th><th>Data sekarang</th><th>Real-time?</th><th>Guna untuk</th></tr></thead>
+        <tbody>
+          <tr><td>🌴 <b>FCPO</b></td><td>CPO=F proxy (CME) + soyoil + USD/MYR, delay ~15min</td><td><span class="cant">Proxy</span></td><td>Swing / EOD sentiment. Bukan scalp intraday.</td></tr>
+          <tr><td>₿ <b>Crypto</b></td><td>Binance public feed</td><td><span class="can">Ya</span></td><td>Modul paling kuat + tepat.</td></tr>
+          <tr><td>🌍 <b>Global</b></td><td>Yahoo index / VIX / DXY</td><td><span class="cant">~15min</span></td><td>Mood pasaran — cukup untuk sentimen.</td></tr>
+          <tr><td>🇲🇾 <b>Bursa</b></td><td>Yahoo .KL EOD, watchlist manual</td><td><span class="cant">EOD</span></td><td>Watchlist harian. Auto-scan real-time = feed berbayar.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- EXTENSION POINTS -->
+  <section>
+    <div class="sec-head"><span class="n mono">05</span><h2>Di sini team masuk</h2></div>
+    <p class="sec-sub">Ini bahagian brainstorm. Sistem sudah ada rangka — <b>cara trade setiap ahli</b> masuk di titik-titik ini, dan berubah jadi peraturan sistem.</p>
+    <div class="grid g2 xp">
+      <div class="card">
+        <h3>Peraturan skor teknikal</h3>
+        <div class="where">Di kod: <code>indicators.js → compositeScore()</code></div>
+        <p>Sekarang: SMA + RSI + MACD dengan berat tetap. Team boleh tetapkan kriteria & pemberat sendiri.</p>
+        <div class="decide"><b>Team decide:</b> indicator apa yang korang percaya + berapa berat setiap satu?</div>
+      </div>
+      <div class="card">
+        <h3>Watchlist</h3>
+        <div class="where">Di DB: <code>traderadar_watchlist</code></div>
+        <p>Simbol boleh edit tanpa sentuh kod. Setiap ahli boleh masukkan counter yang dia pantau.</p>
+        <div class="decide"><b>Team decide:</b> saham / pair / crypto mana yang kita betul-betul trade?</div>
+      </div>
+      <div class="card">
+        <h3>Gaya analisis AI</h3>
+        <div class="where">Di kod: <code>cron-sentiment.js → prompt</code></div>
+        <p>Naratif Claude ikut arahan prompt. Boleh tetapkan nada, bahasa, dan rangka yang team suka.</p>
+        <div class="decide"><b>Team decide:</b> macam mana korang nak analisis dibaca — ringkas? terperinci?</div>
+      </div>
+      <div class="card">
+        <h3>Playbook setup</h3>
+        <div class="where">Baru: definisi entry / exit / invalidation</div>
+        <p>Setiap strategi jadi satu playbook dengan syarat jelas — sistem tapis ikut syarat itu.</p>
+        <div class="decide"><b>Team decide:</b> apa syarat setup korang, dan bila dia "batal"?</div>
+      </div>
+      <div class="card">
+        <h3>Jadual alert</h3>
+        <div class="where">Di config: <code>vercel.json → crons</code></div>
+        <p>Sekarang pagi 8:45 · FCPO 10:00 · malam 8:30 (MYT). Boleh ubah ikut jam korang trade.</p>
+        <div class="decide"><b>Team decide:</b> bila kita nak radar hidup?</div>
+      </div>
+      <div class="card">
+        <h3>Paper-trade log</h3>
+        <div class="where">Di DB: <code>traderadar_paper_trade_logs</code></div>
+        <p>Rekod setup sebenar + hasil. Ini yang <b>buktikan edge</b> sebelum duit betul masuk.</p>
+        <div class="decide"><b>Team decide:</b> apa yang kita ukur untuk tahu sistem ini berguna?</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BRAINSTORM WORKSHEET -->
+  <section>
+    <div class="sec-head"><span class="n mono">06</span><h2>Soalan untuk sesi brainstorm</h2></div>
+    <p class="sec-sub">Jawab ini bersama team. Setiap jawapan menjadi peraturan dalam sistem — inilah cara "cara trade korang" jadi kod.</p>
+    <div class="work">
+      <div class="qrow"><div class="q">Market &amp; simbol apa setiap ahli trade?<div class="hint">→ isi <em>watchlist</em> + tentukan modul mana keutamaan</div></div></div>
+      <div class="qrow"><div class="q">Apa checklist entry korang?<div class="hint">→ jadi <em>peraturan scoring</em> — indicator + syarat</div></div></div>
+      <div class="qrow"><div class="q">Apa yang <b>confirm</b> setup, apa yang <b>batalkan</b> (invalidation)?<div class="hint">→ jadi <em>logik invalidation</em> dalam laporan</div></div></div>
+      <div class="qrow"><div class="q">Timeframe korang — intraday, swing, atau EOD?<div class="hint">→ tentukan <em>interval data</em> + jadual alert</div></div></div>
+      <div class="qrow"><div class="q">Apa maksud "setup berkualiti" bagi korang?<div class="hint">→ jadi <em>ranking</em> — mana naik atas radar</div></div></div>
+      <div class="qrow"><div class="q">Peraturan risk / position sizing kita?<div class="hint">→ jadi <em>garis panduan</em> dalam paper-trade log</div></div></div>
+    </div>
+  </section>
+
+  <!-- KEPUTUSAN TEAM -->
+  <section>
+    <div class="sec-head"><span class="n mono">07</span><h2>Keputusan team</h2></div>
+    <p class="sec-sub">Rekod hidup — terisi selepas setiap sesi brainstorm. Setiap baris di sini menjadi peraturan sebenar dalam sistem. Bagi Tokwi keputusan korang, jadual dikemas kini, <b>link kekal sama</b>.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Bidang</th><th>Keputusan team</th><th>Jadi apa dalam sistem</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>🎯 <b>Watchlist</b></td><td>—</td><td class="mono">traderadar_watchlist</td><td><span class="pill neut mono">Menunggu</span></td></tr>
+          <tr><td>📊 <b>Peraturan skor</b></td><td>—</td><td class="mono">compositeScore()</td><td><span class="pill neut mono">Menunggu</span></td></tr>
+          <tr><td>🛑 <b>Invalidation</b></td><td>—</td><td>logik senario laporan</td><td><span class="pill neut mono">Menunggu</span></td></tr>
+          <tr><td>⏱️ <b>Timeframe</b></td><td>—</td><td>interval data + jadual cron</td><td><span class="pill neut mono">Menunggu</span></td></tr>
+          <tr><td>⭐ <b>Setup berkualiti</b></td><td>—</td><td>ranking radar</td><td><span class="pill neut mono">Menunggu</span></td></tr>
+          <tr><td>🛡️ <b>Risk / sizing</b></td><td>—</td><td>garis panduan paper-trade</td><td><span class="pill neut mono">Menunggu</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout" style="margin-top:14px;">
+      <span class="i">📝</span>
+      <p><b>Cara guna:</b> lepas brainstorm, kolum "Keputusan team" diisi + status bertukar <span class="pill bull mono" style="font-size:10px;">Aktif</span>. Log versi di kaki dokumen merekod setiap kemas kini.</p>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section>
+    <div class="sec-head"><span class="n mono">08</span><h2>Roadmap</h2></div>
+    <p class="sec-sub">Mula kecil, buktikan berguna, baru naik taraf. Jangan bayar data premium sebelum edge terbukti.</p>
+    <div class="road">
+      <div class="phase">
+        <div class="ph">MVP 1 · Bulan 1</div>
+        <h3>Sentiment radar</h3>
+        <ul>
+          <li>Telegram 3× sehari</li>
+          <li>4 modul sentimen</li>
+          <li>Watchlist + paper-trade log</li>
+          <li>Claude analisis akhir</li>
+        </ul>
+        <div class="cost">Kos: <b>RM20–50</b>/bln</div>
+      </div>
+      <div class="phase">
+        <div class="ph">MVP 2 · Bulan 2–3</div>
+        <h3>Scanner + review</h3>
+        <ul>
+          <li>Lebih banyak simbol</li>
+          <li>News catalyst masuk prompt</li>
+          <li>Ranking setup</li>
+          <li>Review prestasi mingguan</li>
+        </ul>
+        <div class="cost">Kos: <b>RM100–200</b>/bln</div>
+      </div>
+      <div class="phase">
+        <div class="ph">MVP 3 · Bila terbukti</div>
+        <h3>Serius</h3>
+        <ul>
+          <li>Data premium / broker feed</li>
+          <li>Alert lebih real-time</li>
+          <li>Dashboard prestasi</li>
+          <li>Backtest ringkas</li>
+        </ul>
+        <div class="cost">Kos: <b>RM300+</b>/bln</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GO LIVE -->
+  <section>
+    <div class="sec-head"><span class="n mono">09</span><h2>Checklist go-live</h2></div>
+    <p class="sec-sub">Backbone siap. Ini yang perlu untuk hidupkan penuh — langkah penuh ada dalam <span class="mono">TRADERADAR-SETUP.md</span>.</p>
+    <div class="checklist">
+      <div class="citem"><span class="box"></span><span><b>Supabase</b> — create project + run <span class="mono">traderadar-schema.sql</span></span><span class="who">Dev</span></div>
+      <div class="citem"><span class="box"></span><span><b>Telegram</b> — BotFather /newbot → token + chat id</span><span class="who">Dev</span></div>
+      <div class="citem"><span class="box"></span><span><b>Env vars</b> — Supabase, Telegram, Claude, CRON_SECRET di Vercel</span><span class="who">Dev</span></div>
+      <div class="citem"><span class="box"></span><span><b>Test</b> — <span class="mono">/api/cron-sentiment?session=morning</span> → semak preview</span><span class="who">Dev</span></div>
+      <div class="citem"><span class="box"></span><span><b>Cron</b> — cron-job.org × 3 sesi (elak limit Vercel Hobby)</span><span class="who">Dev</span></div>
+      <div class="citem"><span class="box"></span><span><b>Brainstorm</b> — team isi watchlist + peraturan setup (seksyen 05–06)</span><span class="who">Team</span></div>
+      <div class="citem"><span class="box"></span><span><b>Paper-trade 4–8 minggu</b> — log setup, semak edge sebelum duit betul</span><span class="who">Team</span></div>
+    </div>
+  </section>
+
+  <footer>
+    <p class="disc"><b>Nota:</b> SwiftSignal / TradeRadar ialah alat bantu analisis untuk kegunaan pendidikan. Ia <b>bukan</b> nasihat kewangan, bukan cadangan pelaburan, dan bukan jaminan keuntungan. Setiap keputusan trade adalah tanggungjawab pengguna sendiri — sahkan dengan chart &amp; risk management korang.</p>
+    <p class="sig mono">SwiftSignal · SwiftApps OS — disediakan oleh <b>Tokwi</b> untuk pasukan Adam</p>
+    <p class="sig mono" style="margin-top:6px; font-size:12px;">Log versi — <b>v1.1</b> · 4 Julai 2026 · seksyen Keputusan Team ditambah &nbsp;·&nbsp; <b>v1.0</b> · 3 Julai 2026 · brief awal</p>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t) { if (t) root.setAttribute('data-theme', t); }
+    try { apply(localStorage.getItem('ss-theme')); } catch (e) {}
+    btn.addEventListener('click', function () {
+      var cur = root.getAttribute('data-theme');
+      if (!cur) { cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+      var next = cur === 'dark' ? 'light' : 'dark';
+      apply(next);
+      try { localStorage.setItem('ss-theme', next); } catch (e) {}
+    });
+  })();
+</script>

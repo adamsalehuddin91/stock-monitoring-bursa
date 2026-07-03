@@ -7,7 +7,7 @@ import { getAllUSStocks } from '../data/globalStocks';
 
 // ===== CACHE SYSTEM to avoid rate limiting =====
 const cache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 30 * 1000; // 30 seconds
 
 const getCachedData = (key) => {
   const cached = cache.get(key);
