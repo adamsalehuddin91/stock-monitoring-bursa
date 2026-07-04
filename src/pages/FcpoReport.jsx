@@ -57,6 +57,21 @@ function StatCard({ label, value, sub, chg }) {
   );
 }
 
+// Render the cron's stored structured analysis (Supabase) as markdown for the report card.
+function storedToMarkdown(st) {
+  const a = st.raw_data?.analysis || {};
+  const out = [];
+  if (a.overall_bias) out.push(`## ${a.overall_bias}${a.confidence ? ` — keyakinan ${a.confidence}` : ''}`);
+  if (st.claude_summary) out.push(st.claude_summary, '');
+  const catalysts = a.catalysts || [];
+  if (catalysts.length) { out.push('### 📰 Catalyst'); catalysts.forEach(c => out.push(`- ${c}`)); out.push(''); }
+  const focus = st.drivers || a.focus || [];
+  if (focus.length) { out.push('### 🔍 Fokus'); focus.forEach(f => out.push(`- ${f}`)); out.push(''); }
+  const cautions = st.risks || a.cautions || [];
+  if (cautions.length) { out.push('### ⚠️ Awas'); cautions.forEach(c => out.push(`- ${c}`)); }
+  return out.join('\n');
+}
+
 function CommodityReports() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tab, setTab] = useState('fcpo');
@@ -65,18 +80,26 @@ function CommodityReports() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [stored, setStored] = useState(null);
   const [error, setError] = useState(null);
   const theme = THEME[tab];
 
-  // FREE — Yahoo snapshot + deterministic demo narrative. Runs on load/tab/interval/refresh.
-  // No Claude here → refresh never costs tokens.
+  // FREE — Yahoo snapshot + the stored cron analysis from Supabase (no Claude).
+  // Default report = cron's stored AI analysis if available; else demo template.
+  // Runs on load/tab/interval/refresh → never costs tokens.
   const loadSnapshot = useCallback(async (key, iv) => {
     setLoading(true); setError(null);
     try {
-      const snapshot = await getCommoditySnapshot(key, { interval: iv });
+      const [snapshot, rows] = await Promise.all([
+        getCommoditySnapshot(key, { interval: iv }),
+        isConfigured() ? getRecentSentiment({ module: key, limit: 1 }).catch(() => []) : Promise.resolve([]),
+      ]);
       setSnap(snapshot);
-      setReport({ demo: true, score: snapshot.main?.indicators?.score, label: snapshot.main?.indicators?.label, reportMarkdown: buildDemoReport(snapshot), disclaimer: DISCLAIMER });
+      const st = rows?.[0] || null;
+      if (st?.claude_summary) {
+        setReport({ fromCron: true, updatedAt: st.created_at, score: st.sentiment_score ?? snapshot.main?.indicators?.score, label: st.sentiment_label ?? snapshot.main?.indicators?.label, reportMarkdown: storedToMarkdown(st), disclaimer: DISCLAIMER });
+      } else {
+        setReport({ demo: true, score: snapshot.main?.indicators?.score, label: snapshot.main?.indicators?.label, reportMarkdown: buildDemoReport(snapshot), disclaimer: DISCLAIMER });
+      }
     } catch (e) { setError(e.message || 'Gagal muat data'); }
     finally { setLoading(false); }
   }, []);
@@ -94,14 +117,6 @@ function CommodityReports() {
   }, [snap]);
 
   useEffect(() => { loadSnapshot(tab, interval); }, [tab, interval, loadSnapshot]);
-
-  // FREE — read the latest cron-generated analysis from Supabase (no tokens).
-  useEffect(() => {
-    let alive = true;
-    if (isConfigured()) getRecentSentiment({ module: tab, limit: 1 }).then(r => { if (alive) setStored(r?.[0] || null); }).catch(() => {});
-    else setStored(null);
-    return () => { alive = false; };
-  }, [tab]);
 
   const m = snap?.main || {}, ind = m.indicators || {};
   const score = report?.score ?? ind.score;
@@ -166,9 +181,11 @@ function CommodityReports() {
                 <button onClick={generateAI} disabled={aiLoading || loading || !snap} className="flex items-center gap-1.5 bg-white text-gray-800 text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50">
                   <Sparkles className={`w-3.5 h-3.5 ${aiLoading ? 'animate-pulse' : ''}`} /> {aiLoading ? 'Menjana…' : 'Jana AI'}
                 </button>
-                {report?.demo
-                  ? <span className="ml-auto text-[11px] bg-white/20 rounded-full px-2.5 py-1 backdrop-blur">🧪 Auto · RM0</span>
-                  : <span className="ml-auto text-[11px] bg-white/25 rounded-full px-2.5 py-1 backdrop-blur">✨ AI · Claude</span>}
+                {report?.fromCron
+                  ? <span className="ml-auto text-[11px] bg-white/20 rounded-full px-2.5 py-1 backdrop-blur">📡 Cron · RM0{report.updatedAt ? ` · ${new Date(report.updatedAt).toLocaleDateString('ms-MY')}` : ''}</span>
+                  : report?.demo
+                    ? <span className="ml-auto text-[11px] bg-white/20 rounded-full px-2.5 py-1 backdrop-blur">🧪 Demo · RM0</span>
+                    : <span className="ml-auto text-[11px] bg-white/25 rounded-full px-2.5 py-1 backdrop-blur">✨ AI · Claude</span>}
               </div>
             </div>
 
@@ -181,30 +198,7 @@ function CommodityReports() {
               <StatCard label="USD/MYR" value={snap?.fx?.lastClose} chg={snap?.fx?.changePct} />
             </div>
 
-            {/* Radar tersimpan dari cron (Supabase) — FREE, refresh tak makan token */}
-            {stored && (
-              <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-700/50 mb-5">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm flex items-center gap-1.5">
-                    📡 Radar Tersimpan
-                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-full px-2 py-0.5">cron · RM0</span>
-                  </h3>
-                  <span className="text-[11px] text-gray-400">{new Date(stored.created_at).toLocaleString('ms-MY')}</span>
-                </div>
-                {stored.claude_summary
-                  ? <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{stored.claude_summary}</p>
-                  : <p className="text-sm text-gray-400">Skor: {stored.sentiment_label} ({stored.sentiment_score}). Naratif AI belum dijana.</p>}
-                {stored.raw_data?.analysis?.catalysts?.length > 0 && (
-                  <ul className="mt-2.5 space-y-1">
-                    {stored.raw_data.analysis.catalysts.map((c, i) => (
-                      <li key={i} className="text-xs text-gray-500 dark:text-gray-400 flex gap-1.5"><span className="text-emerald-500 shrink-0">📰</span>{c}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* Report */}
+            {/* Report — default: analisis cron (Supabase, RM0); "Jana AI" untuk fresh */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 md:p-7 shadow-sm border border-gray-100 dark:border-gray-700/50 mb-5">
               {(loading || aiLoading) ? <div className="text-center py-14 text-gray-400">Menjana laporan…</div>
                 : report?.reportMarkdown ? <MiniMarkdown text={report.reportMarkdown} />
