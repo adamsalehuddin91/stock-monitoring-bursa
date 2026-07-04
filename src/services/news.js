@@ -33,7 +33,7 @@ async function fetchTopic(query, limit) {
     if (!title) continue
     const date = pick(block, 'pubDate') || ''
     const ts = Date.parse(date)   // NaN if unparseable
-    items.push({ title, source: pick(block, 'source') || 'News', date, ts: Number.isNaN(ts) ? null : ts })
+    items.push({ title, source: pick(block, 'source') || 'News', link: pick(block, 'link') || '', date, ts: Number.isNaN(ts) ? null : ts })
     if (items.length >= limit) break
   }
   return items
