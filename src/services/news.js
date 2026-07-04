@@ -31,25 +31,32 @@ async function fetchTopic(query, limit) {
   for (const block of xml.split('<item>').slice(1)) {
     const title = pick(block, 'title')
     if (!title) continue
-    items.push({ title, source: pick(block, 'source') || 'News', date: pick(block, 'pubDate') || '' })
+    const date = pick(block, 'pubDate') || ''
+    const ts = Date.parse(date)   // NaN if unparseable
+    items.push({ title, source: pick(block, 'source') || 'News', date, ts: Number.isNaN(ts) ? null : ts })
     if (items.length >= limit) break
   }
   return items
 }
 
-// Deduped headlines across the topics for a set of module keys.
-export async function getHeadlines(moduleKeys, { perTopic = 4, max = 12 } = {}) {
+// Deduped, RECENT headlines across the topics for a set of module keys.
+// Drops articles older than `maxAgeDays` (Google News often mixes in old ones),
+// keeps undated items, and sorts newest-first so the freshest catalysts lead.
+export async function getHeadlines(moduleKeys, { perTopic = 5, max = 12, maxAgeDays = 7 } = {}) {
   const topics = [...new Set(moduleKeys.flatMap(k => NEWS_TOPICS[k] || []))]
   const lists = await Promise.all(topics.map(t => fetchTopic(t, perTopic).catch(() => [])))
+  const cutoff = Date.now() - maxAgeDays * 86400000
   const seen = new Set(), out = []
   for (const list of lists) {
     for (const h of list) {
+      if (h.ts != null && h.ts < cutoff) continue        // too old → drop
       const key = h.title.toLowerCase().slice(0, 60)
       if (seen.has(key)) continue
       seen.add(key)
       out.push(h)
-      if (out.length >= max) return out
     }
   }
   return out
+    .sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))            // newest first
+    .slice(0, max)
 }

@@ -3,7 +3,7 @@
 // REAL MODE (key set): Claude Sonnet 4.6. Set a hard spend cap in the console.
 import { buildDemoReport, DISCLAIMER } from '../src/services/commodityReportTemplate.js'
 
-const MODEL = 'claude-sonnet-5'   // cost/quality balance for a daily report (intro $2/$10 per M)
+const MODEL = 'claude-opus-4-8'   // top-tier reasoning for the daily report ($5/$25 per M)
 
 function buildPrompt(snap) {
   const gold = snap.key === 'gold'

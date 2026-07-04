@@ -11,9 +11,11 @@
 // manual/external trigger appends `?secret=<secret>`.
 import { getAllModules } from '../src/services/sentimentEngine.js'
 import { getHeadlines } from '../src/services/news.js'
+import { screenSymbols } from '../src/services/screener.js'
+import { MODULES } from '../src/services/marketAssets.js'
 import { sendTelegram } from './telegram.js'
 
-const MODEL = 'claude-sonnet-5'   // intro $2/$10 per M; cheap for a daily narrative
+const MODEL = 'claude-opus-4-8'   // top-tier reasoning for the analysis ($5/$25 per M)
 const DISCLAIMER = 'Educational purpose only. Bukan nasihat kewangan.'
 
 const SESSIONS = {
@@ -62,11 +64,28 @@ function fmtModule(m) {
   return lines.join('\n')
 }
 
-function buildMessage(session, data, { analysis, headlines }) {
+// #3 — rank the session's basket symbols by opportunity score (screener.js).
+async function topSetups(moduleKeys, n = 3) {
+  const symbols = moduleKeys.flatMap(k => (MODULES[k]?.driver === 'basket' ? MODULES[k].symbols : []))
+  if (symbols.length < 2) return []
+  return screenSymbols(symbols, { top: n }).catch(() => [])
+}
+
+function buildMessage(session, data, { analysis, headlines, setups }) {
   const s = SESSIONS[session]
   const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16)
   const head = `📡 *TRADERADAR ${s.title}*\n_${stamp} UTC_`
   const body = data.modules.map(fmtModule).join('\n\n')
+
+  let setupBlock = ''
+  if (setups?.length >= 2) {
+    setupBlock = '\n\n🎯 *Top Setups* _(calon momentum — sahkan sendiri)_\n' +
+      setups.map((s2, i) => {
+        const chg = s2.changePct != null ? ` (${fmtPct(s2.changePct)})` : ''
+        const why = s2.reasons?.length ? `\n   _${s2.reasons.slice(0, 2).join(' · ')}_` : ''
+        return `${i + 1}. *${s2.name}* — skor ${s2.opportunityScore}${chg}${why}`
+      }).join('\n')
+  }
 
   let insight = ''
   if (analysis) {
@@ -79,7 +98,7 @@ function buildMessage(session, data, { analysis, headlines }) {
     // Demo mode (no Claude key) — still show raw headlines; news is free.
     insight = `\n\n📰 *Tajuk Berita*\n${headlines.slice(0, 5).map(h => `• ${h.title} _(${h.source})_`).join('\n')}`
   }
-  return `${head}\n\n${body}${insight}\n\n_${DISCLAIMER}_`
+  return `${head}\n\n${body}${setupBlock}${insight}\n\n_${DISCLAIMER}_`
 }
 
 // ---- PHASE 2 — Claude reads scores + headlines → structured catalyst analysis ----
@@ -169,12 +188,13 @@ export default async function handler(req, res) {
 
   try {
     const mods = SESSIONS[session].modules
-    const [data, headlines] = await Promise.all([
+    const [data, headlines, setups] = await Promise.all([
       getAllModules(mods),
       getHeadlines(mods).catch(() => []),
+      topSetups(mods),
     ])
     const analysis = await claudeAnalysis(data, headlines)
-    const message = buildMessage(session, data, { analysis, headlines })
+    const message = buildMessage(session, data, { analysis, headlines, setups })
 
     const errors = []
     let saved = null, sent = false
@@ -187,6 +207,7 @@ export default async function handler(req, res) {
       demo: !process.env.ANTHROPIC_API_KEY,
       structured: !!analysis,
       headlines: headlines.length,
+      setups: setups.length,
       modules: data.modules.map(m => ({ module: m.module, sentiment: m.overall?.label || m.error })),
       saved, sent, errors,
       preview: message,
