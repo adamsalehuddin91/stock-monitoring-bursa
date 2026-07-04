@@ -45,14 +45,18 @@ function StockScreener() {
         stocksList = combined.filter(s => (seen.has(s.code) ? false : (seen.set(s.code, 1), true)));
       }
       const stockData = await fetchMultipleStocks(stocksList.map(s => s.code));
-      const enriched = stockData.map(stock => {
-        const info = stocksList.find(s => s.code === stock.code);
-        return {
-          ...stock,
-          sector: info?.sector || info?.category || 'Other',
-          market: selectedMarket === 'US' ? 'US' : (selectedMarket === 'BURSA' ? 'MY' : (info?.sector ? 'US' : 'MY')),
-        };
-      });
+      const seenCodes = new Set();
+      const enriched = stockData
+        .map(stock => {
+          const info = stocksList.find(s => s.code === stock.code);
+          return {
+            ...stock,
+            sector: info?.sector || info?.category || 'Other',
+            market: selectedMarket === 'US' ? 'US' : (selectedMarket === 'BURSA' ? 'MY' : (info?.sector ? 'US' : 'MY')),
+          };
+        })
+        // Dedupe by code — duplicate keys + re-sort makes React duplicate DOM rows.
+        .filter(s => (seenCodes.has(s.code) ? false : (seenCodes.add(s.code), true)));
       setAllStocks(enriched);
       setFilteredStocks(enriched);
     } catch (error) {
