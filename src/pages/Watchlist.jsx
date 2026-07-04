@@ -6,14 +6,13 @@ import Sidebar from '../partials/StockSidebar';
 import Header from '../partials/Header';
 import MiniChart from '../components/MiniChart';
 import MarketSelector from '../components/MarketSelector';
-import { fetchMultipleStocks, fetchHistoricalData, STOCK_SYMBOLS } from '../services/stockApi';
+import { fetchMultipleStocks, fetchHistoricalData } from '../services/stockApi';
 import { DEFAULT_WATCHLIST, getStockByCode, getAllStocks } from '../data/malaysianStocks';
 import { DEFAULT_US_WATCHLIST, getAllUSStocks, getUSStockByCode } from '../data/globalStocks';
 import AddStockModal from '../components/AddStockModal';
 import AdvancedFilter from '../components/AdvancedFilter';
 import { isMarketOpen } from '../utils/marketHours';
 
-// Get default watchlist based on market (outside component to avoid recreation)
 const getDefaultWatchlist = (market) => {
   if (market === 'US') return DEFAULT_US_WATCHLIST;
   if (market === 'GLOBAL') return [...DEFAULT_WATCHLIST, ...DEFAULT_US_WATCHLIST];
@@ -23,9 +22,7 @@ const getDefaultWatchlist = (market) => {
 function Watchlist() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedMarket, setSelectedMarket] = useState(() => {
-    return localStorage.getItem('selectedMarket') || 'BURSA';
-  });
+  const [selectedMarket, setSelectedMarket] = useState(() => localStorage.getItem('selectedMarket') || 'BURSA');
   const [stocks, setStocks] = useState([]);
   const [chartData, setChartData] = useState({});
   const [loading, setLoading] = useState(true);
@@ -34,260 +31,88 @@ function Watchlist() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState({
-    sectors: [],
-    priceRange: { min: '', max: '' },
-    volumeRange: { min: '', max: '' },
-    changeRange: { min: '', max: '' },
-    quickFilter: 'all'
-  });
+  const [advancedFilters, setAdvancedFilters] = useState({ sectors: [], priceRange: { min: '', max: '' }, volumeRange: { min: '', max: '' }, changeRange: { min: '', max: '' }, quickFilter: 'all' });
 
-  // Watchlist codes with localStorage persistence per market
   const [watchlistCodes, setWatchlistCodes] = useState(() => {
-    const currentMarket = localStorage.getItem('selectedMarket') || 'BURSA';
-    const storageKey = `stockWatchlist_${currentMarket}`;
-    const saved = localStorage.getItem(storageKey);
-    let codes = saved ? JSON.parse(saved) : getDefaultWatchlist(currentMarket);
-
-    // 🔄 AUTO-MIGRATION: Update old stock codes to new ones
-    const codeMap = {
-      '5235': '7113', // TOPGLOVE old → new
-      '5222': '6742', // YTL POWER old → new
-      '2216': '2445'  // IOI CORP old → KL KEPONG (since 1961 already in list)
-    };
-
+    const market = localStorage.getItem('selectedMarket') || 'BURSA';
+    const storageKey = `stockWatchlist_${market}`;
+    let codes = JSON.parse(localStorage.getItem(storageKey) || 'null') || getDefaultWatchlist(market);
+    const codeMap = { '5235': '7113', '5222': '6742', '2216': '2445' };
     let migrated = false;
-    codes = codes.map(code => {
-      if (codeMap[code]) {
-        console.log(`✅ Migrating old code ${code} → ${codeMap[code]}`);
-        migrated = true;
-        return codeMap[code];
-      }
-      return code;
-    });
-
-    // Remove duplicates after migration
+    codes = codes.map(c => { if (codeMap[c]) { migrated = true; return codeMap[c]; } return c; });
     codes = [...new Set(codes)];
-
-    if (migrated) {
-      console.log('🔄 Stock codes migrated successfully!');
-      localStorage.setItem(storageKey, JSON.stringify(codes));
-    }
-
+    if (migrated) localStorage.setItem(storageKey, JSON.stringify(codes));
     return codes;
   });
 
-  // Save selected market to localStorage
-  useEffect(() => {
-    localStorage.setItem('selectedMarket', selectedMarket);
-  }, [selectedMarket]);
+  useEffect(() => { localStorage.setItem('selectedMarket', selectedMarket); }, [selectedMarket]);
+  useEffect(() => { localStorage.setItem(`stockWatchlist_${selectedMarket}`, JSON.stringify(watchlistCodes)); }, [watchlistCodes, selectedMarket]);
 
-  // Save to localStorage whenever watchlist changes
-  // IMPORTANT: Depends on both watchlistCodes AND selectedMarket to ensure correct storage key
   useEffect(() => {
     const storageKey = `stockWatchlist_${selectedMarket}`;
-    localStorage.setItem(storageKey, JSON.stringify(watchlistCodes));
-  }, [watchlistCodes, selectedMarket]);
-
-  // Reload watchlist when market changes
-  useEffect(() => {
-    const storageKey = `stockWatchlist_${selectedMarket}`;
-    const saved = localStorage.getItem(storageKey);
-    let codes = saved ? JSON.parse(saved) : getDefaultWatchlist(selectedMarket);
-
-    // 🔧 VALIDATION: Check for corrupted data (Malaysian codes in US market or vice versa)
-    if (selectedMarket === 'US') {
-      // US codes should be alphabetic (AAPL, TSLA, etc), not numeric (1155, 1295, etc)
-      const hasInvalidCodes = codes.some(code => /^\d+$/.test(code));
-      if (hasInvalidCodes) {
-        console.warn('⚠️ Detected Malaysian codes in US market! Clearing and using defaults...');
-        localStorage.removeItem(storageKey);
-        codes = getDefaultWatchlist(selectedMarket);
-      }
-    } else if (selectedMarket === 'BURSA') {
-      // Malaysian codes should be numeric (1155, 5347, etc), not alphabetic stock symbols
-      const hasInvalidCodes = codes.some(code => /^[A-Z]+$/.test(code));
-      if (hasInvalidCodes) {
-        console.warn('⚠️ Detected US codes in Malaysian market! Clearing and using defaults...');
-        localStorage.removeItem(storageKey);
-        codes = getDefaultWatchlist(selectedMarket);
-      }
-    }
-
+    let codes = JSON.parse(localStorage.getItem(storageKey) || 'null') || getDefaultWatchlist(selectedMarket);
+    if (selectedMarket === 'US' && codes.some(c => /^\d+$/.test(c))) { localStorage.removeItem(storageKey); codes = getDefaultWatchlist(selectedMarket); }
+    else if (selectedMarket === 'BURSA' && codes.some(c => /^[A-Z]+$/.test(c))) { localStorage.removeItem(storageKey); codes = getDefaultWatchlist(selectedMarket); }
     setWatchlistCodes(codes);
   }, [selectedMarket]);
 
-  // Enrich stock data with sector info from appropriate database
-  const enrichStockData = (stocksData) => {
-    return stocksData.map(stock => {
-      let metadata;
-      if (selectedMarket === 'US') {
-        metadata = getUSStockByCode(stock.code);
-      } else if (selectedMarket === 'GLOBAL') {
-        // Try both databases
-        metadata = getStockByCode(stock.code) || getUSStockByCode(stock.code);
-      } else {
-        metadata = getStockByCode(stock.code);
-      }
-      return {
-        ...stock,
-        sector: metadata?.sector || 'Unknown',
-        category: metadata?.category || 'Unknown',
-        market: metadata?.market || (selectedMarket === 'US' ? 'NASDAQ' : 'BURSA'),
-        country: metadata?.country || (selectedMarket === 'US' ? 'US' : 'MY')
-      };
-    });
-  };
+  const enrichStockData = (data) => data.map(stock => {
+    const meta = selectedMarket === 'US' ? getUSStockByCode(stock.code) : selectedMarket === 'GLOBAL' ? (getStockByCode(stock.code) || getUSStockByCode(stock.code)) : getStockByCode(stock.code);
+    return { ...stock, sector: meta?.sector || 'Unknown', category: meta?.category || 'Unknown', market: meta?.market || (selectedMarket === 'US' ? 'NASDAQ' : 'BURSA'), country: meta?.country || (selectedMarket === 'US' ? 'US' : 'MY') };
+  });
 
-  // Fetch real-time data and mini chart data
   const fetchData = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true); setError(null);
       const data = await fetchMultipleStocks(watchlistCodes);
-      const enrichedData = enrichStockData(data);
-      setStocks(enrichedData);
+      setStocks(enrichStockData(data));
       setLoading(false);
-
-      // Fetch 5-day historical data for mini charts (async, non-blocking)
-      if (watchlistCodes && watchlistCodes.length > 0) {
-        fetchMiniChartData(watchlistCodes).catch(err => {
-          console.error('Mini chart fetch failed:', err);
-        });
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to fetch stock data');
-      console.error('Error fetching stocks:', err);
-      setLoading(false);
-    }
+      if (watchlistCodes?.length) fetchMiniChartData(watchlistCodes).catch(() => {});
+    } catch (err) { setError(err.message || 'Gagal muat data saham'); setLoading(false); }
   };
 
-  // Fetch mini chart data separately (non-blocking)
   const fetchMiniChartData = async (codes) => {
-    if (!codes || codes.length === 0) return;
-
-    console.log('🔍 Fetching mini charts for:', codes.length, 'stocks');
-
-    try {
-      const chartPromises = codes.map(async (code) => {
-        try {
-          const histData = await fetchHistoricalData(code, '5d', '15m');
-          console.log(`📊 Chart data for ${code}:`, histData ? `${histData.candles?.length} candles` : 'null');
-
-          if (histData && histData.candles && histData.candles.length > 0) {
-            // Convert to simple {time, value} format for mini chart
-            return {
-              code,
-              data: histData.candles.map(c => ({
-                time: c.time,
-                value: c.close
-              }))
-            };
-          }
-          return { code, data: [] };
-        } catch (err) {
-          console.error(`❌ Error fetching chart for ${code}:`, err);
-          return { code, data: [] };
-        }
-      });
-
-      const results = await Promise.allSettled(chartPromises);
-      const chartDataMap = {};
-      results.forEach(result => {
-        if (result.status === 'fulfilled' && result.value) {
-          chartDataMap[result.value.code] = result.value.data;
-        }
-      });
-
-      console.log('✅ Mini chart data loaded:', Object.keys(chartDataMap).length, 'charts');
-      setChartData(chartDataMap);
-    } catch (err) {
-      console.error('❌ Error fetching mini chart data:', err);
-      // Don't throw - mini charts are optional
-    }
+    if (!codes?.length) return;
+    const results = await Promise.allSettled(codes.map(async code => {
+      const h = await fetchHistoricalData(code, '5d', '15m');
+      return { code, data: h?.candles?.length ? h.candles.map(c => ({ time: c.time, value: c.close })) : [] };
+    }));
+    const map = {};
+    results.forEach(r => { if (r.status === 'fulfilled' && r.value) map[r.value.code] = r.value.data; });
+    setChartData(map);
   };
 
-  // Initial fetch and re-fetch when watchlist changes
-  useEffect(() => {
-    fetchData();
-  }, [watchlistCodes]);
+  useEffect(() => { fetchData(); }, [watchlistCodes]);
+  useEffect(() => { const t = setInterval(fetchData, 30000); return () => clearInterval(t); }, [watchlistCodes]);
 
-  // Auto-refresh every 30 seconds
-  // Note: Depends on watchlistCodes to use latest market's stocks
-  useEffect(() => {
-    const timer = setInterval(fetchData, 30000);
-    return () => clearInterval(timer);
-  }, [watchlistCodes]);
+  const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
+  const removeStock = (code) => { setWatchlistCodes(prev => prev.filter(c => c !== code)); setStocks(stocks.filter(s => s.code !== code)); };
+  const addStock = (code) => { if (!watchlistCodes.includes(code)) { setWatchlistCodes(prev => [...prev, code]); setShowAddModal(false); } };
 
-  const refreshData = () => {
-    fetchData();
-  };
-
-  // Sort function
-  const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  // Remove stock
-  const removeStock = (code) => {
-    setWatchlistCodes(prev => prev.filter(c => c !== code));
-    setStocks(stocks.filter(s => s.code !== code));
-  };
-
-  // Add stock
-  const addStock = (code) => {
-    if (!watchlistCodes.includes(code)) {
-      setWatchlistCodes(prev => [...prev, code]);
-      setShowAddModal(false);
-      // Data will auto-fetch via useEffect when watchlistCodes changes
-    }
-  };
-
-  // Apply advanced filters
-  const applyAdvancedFilters = (stock) => {
-    // Quick Filter
-    if (advancedFilters.quickFilter === 'gainers' && stock.change <= 0) return false;
-    if (advancedFilters.quickFilter === 'losers' && stock.change >= 0) return false;
-    if (advancedFilters.quickFilter === 'bigMovers' && Math.abs(stock.changePercent) < 3) return false;
-
-    // Sector Filter
-    if (advancedFilters.sectors.length > 0 && !advancedFilters.sectors.includes(stock.sector)) return false;
-
-    // Price Range
-    if (advancedFilters.priceRange.min && stock.price < parseFloat(advancedFilters.priceRange.min)) return false;
-    if (advancedFilters.priceRange.max && stock.price > parseFloat(advancedFilters.priceRange.max)) return false;
-
-    // Volume Range
-    if (advancedFilters.volumeRange.min && stock.volume < parseFloat(advancedFilters.volumeRange.min)) return false;
-    if (advancedFilters.volumeRange.max && stock.volume > parseFloat(advancedFilters.volumeRange.max)) return false;
-
-    // Change % Range
-    if (advancedFilters.changeRange.min && stock.changePercent < parseFloat(advancedFilters.changeRange.min)) return false;
-    if (advancedFilters.changeRange.max && stock.changePercent > parseFloat(advancedFilters.changeRange.max)) return false;
-
+  const applyAdvancedFilters = (s) => {
+    const f = advancedFilters;
+    if (f.quickFilter === 'gainers' && s.changePercent <= 0) return false;
+    if (f.quickFilter === 'losers' && s.changePercent >= 0) return false;
+    if (f.quickFilter === 'bigMovers' && Math.abs(s.changePercent) < 3) return false;
+    if (f.sectors.length > 0 && !f.sectors.includes(s.sector)) return false;
+    if (f.priceRange.min && s.price < parseFloat(f.priceRange.min)) return false;
+    if (f.priceRange.max && s.price > parseFloat(f.priceRange.max)) return false;
+    if (f.volumeRange.min && s.volume < parseFloat(f.volumeRange.min)) return false;
+    if (f.volumeRange.max && s.volume > parseFloat(f.volumeRange.max)) return false;
+    if (f.changeRange.min && s.changePercent < parseFloat(f.changeRange.min)) return false;
+    if (f.changeRange.max && s.changePercent > parseFloat(f.changeRange.max)) return false;
     return true;
   };
 
-  // Filter and sort stocks
   const filteredStocks = stocks
-    .filter(stock =>
-      stock.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      stock.code.includes(searchTerm)
-    )
+    .filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.code.includes(searchTerm))
     .filter(applyAdvancedFilters);
 
   const sortedStocks = [...filteredStocks].sort((a, b) => {
     if (!sortConfig.key) return 0;
-
-    const aValue = a[sortConfig.key];
-    const bValue = b[sortConfig.key];
-
-    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    const av = a[sortConfig.key], bv = b[sortConfig.key];
+    if (av < bv) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (av > bv) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
 
@@ -296,277 +121,125 @@ function Watchlist() {
   const unchanged = stocks.filter(s => s.change === 0).length;
   const marketOpen = isMarketOpen(selectedMarket);
   const currency = selectedMarket === 'US' ? 'USD' : selectedMarket === 'GLOBAL' ? 'MYR/USD' : 'MYR';
+  const filtersActive = advancedFilters.sectors.length > 0 || advancedFilters.quickFilter !== 'all';
+
+  const SortTh = ({ k, label, align = 'right' }) => (
+    <th className={`px-4 py-3 text-${align}`}>
+      <button onClick={() => handleSort(k)} className={`flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200 ${align === 'right' ? 'ml-auto' : ''}`}>
+        {label} <ArrowUpDown className={`w-3 h-3 ${sortConfig.key === k ? 'text-blue-500' : ''}`} />
+      </button>
+    </th>
+  );
+
+  const StatCard = ({ label, value, Icon, tone }) => (
+    <div className={`rounded-2xl p-4 border ${tone}`}>
+      <div className="flex items-center justify-between">
+        <div><p className="text-[11px] font-semibold uppercase tracking-wide opacity-70">{label}</p><p className="text-2xl font-extrabold mt-0.5">{value}</p></div>
+        <Icon className="w-7 h-7 opacity-60" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
-      <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-gray-900">
         <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
         <main className="grow">
-          <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+          <div className="px-4 sm:px-6 lg:px-8 py-7 w-full max-w-6xl mx-auto">
 
-            {/* Page header */}
-            <div className="sm:flex sm:justify-between sm:items-center mb-6">
-              <div className="mb-4 sm:mb-0">
-                <h1 className="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">Stock Watchlist</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Monitoring {stocks.length} stocks</p>
-              </div>
+            <div className="mb-5">
+              <h1 className="text-2xl md:text-[28px] text-gray-800 dark:text-gray-100 font-extrabold tracking-tight">Watchlist</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Memantau {stocks.length} saham</p>
             </div>
 
-            {/* Market Selector */}
-            <div className="mb-6">
-              <MarketSelector
-                selectedMarket={selectedMarket}
-                onMarketChange={setSelectedMarket}
-              />
+            <div className="mb-5"><MarketSelector selectedMarket={selectedMarket} onMarketChange={setSelectedMarket} /></div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap items-center gap-2 mb-5">
+              <div className="relative flex-1 min-w-[180px] max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input type="text" placeholder="Cari saham…" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-100" />
+              </div>
+              <button onClick={() => setShowFilterModal(true)} className="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold px-3.5 py-2 rounded-xl">
+                <Filter className="w-4 h-4" /> Filters {filtersActive && <span className="text-[10px] bg-blue-500 text-white rounded-full px-1.5">•</span>}
+              </button>
+              <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 bg-emerald-500 text-white text-sm font-semibold px-3.5 py-2 rounded-xl hover:bg-emerald-600"><Plus className="w-4 h-4" /> Tambah</button>
+              <button onClick={fetchData} className="flex items-center gap-1.5 bg-blue-500 text-white text-sm font-semibold px-3.5 py-2 rounded-xl hover:bg-blue-600"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh</button>
             </div>
 
-            {/* Search and Actions */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-              <div className="flex items-center space-x-3">
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search stocks..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-100"
-                  />
-                </div>
-
-                <button
-                  onClick={() => setShowFilterModal(true)}
-                  className="btn bg-purple-500 hover:bg-purple-600 text-white">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <span>Filters</span>
-                  {(advancedFilters.sectors.length > 0 || advancedFilters.quickFilter !== 'all') && (
-                    <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                      Active
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="btn bg-green-500 hover:bg-green-600 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  <span>Add Stock</span>
-                </button>
-
-                <button
-                  onClick={refreshData}
-                  className="btn bg-blue-500 hover:bg-blue-600 text-white">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  <span>Refresh</span>
-                </button>
-              </div>
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <StatCard label="Gainers" value={gainers} Icon={TrendingUp} tone="bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" />
+              <StatCard label="Losers" value={losers} Icon={TrendingDown} tone="bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400" />
+              <StatCard label="Unchanged" value={unchanged} Icon={BarChart2} tone="bg-gray-500/10 border-gray-500/20 text-gray-600 dark:text-gray-300" />
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase">Gainers</p>
-                    <p className="text-2xl font-bold text-green-700 dark:text-green-300 mt-1">{gainers}</p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
+            {error && <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-5 flex items-center gap-3 text-red-600 dark:text-red-400"><AlertCircle className="w-5 h-5" /><span className="text-sm">{error}</span></div>}
 
-              <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase">Losers</p>
-                    <p className="text-2xl font-bold text-red-700 dark:text-red-300 mt-1">{losers}</p>
-                  </div>
-                  <TrendingDown className="w-8 h-8 text-red-600 dark:text-red-400" />
-                </div>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Unchanged</p>
-                    <p className="text-2xl font-bold text-gray-700 dark:text-gray-300 mt-1">{unchanged}</p>
-                  </div>
-                  <BarChart2 className="w-8 h-8 text-gray-600 dark:text-gray-400" />
-                </div>
-              </div>
-            </div>
-
-            {/* Loading State */}
-            {loading && stocks.length === 0 && (
-              <div className="bg-white dark:bg-gray-800 shadow-sm rounded-xl p-12 text-center">
-                <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
-                <p className="text-gray-600 dark:text-gray-400">Loading real-time stock data...</p>
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-6">
-                <div className="flex items-center space-x-3">
-                  <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                  <div>
-                    <h3 className="font-semibold text-red-800 dark:text-red-300">Error Loading Data</h3>
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Watchlist Table */}
-            {!loading && stocks.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 shadow-sm rounded-xl">
+            {loading && stocks.length === 0 ? (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl p-14 text-center shadow-sm"><Loader2 className="w-10 h-10 text-blue-500 mx-auto mb-3 animate-spin" /><p className="text-gray-500 dark:text-gray-400 text-sm">Memuat data real-time…</p></div>
+            ) : stocks.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700/50 overflow-hidden">
                 <div className="overflow-x-auto">
-                <table className="table-auto w-full">
-                  <thead className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20 border-b border-gray-200 dark:border-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 text-left">
-                        <button onClick={() => handleSort('name')} className="flex items-center hover:text-gray-700 dark:hover:text-gray-200">
-                          Stock <ArrowUpDown className="w-3 h-3 ml-1" />
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-center">Trend (5D)</th>
-                      <th className="px-4 py-3 text-right">
-                        <button onClick={() => handleSort('price')} className="flex items-center ml-auto hover:text-gray-700 dark:hover:text-gray-200">
-                          Price ({currency}) <ArrowUpDown className="w-3 h-3 ml-1" />
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-right">
-                        <button onClick={() => handleSort('change')} className="flex items-center ml-auto hover:text-gray-700 dark:hover:text-gray-200">
-                          Change <ArrowUpDown className="w-3 h-3 ml-1" />
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-right">
-                        <button onClick={() => handleSort('changePercent')} className="flex items-center ml-auto hover:text-gray-700 dark:hover:text-gray-200">
-                          Change % <ArrowUpDown className="w-3 h-3 ml-1" />
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-right">
-                        <button onClick={() => handleSort('volume')} className="flex items-center ml-auto hover:text-gray-700 dark:hover:text-gray-200">
-                          Volume (M) <ArrowUpDown className="w-3 h-3 ml-1" />
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-right">High</th>
-                      <th className="px-4 py-3 text-right">Low</th>
-                      <th className="px-4 py-3 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm divide-y divide-gray-200 dark:divide-gray-700">
-                    {sortedStocks.map((stock) => {
-                      const isPositive = stock.change >= 0;
-                      return (
-                        <tr key={stock.code} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
-                          <td className="px-4 py-3">
-                            <div
-                              onClick={() => navigate(`/stock/${stock.code}`)}
-                              className="cursor-pointer">
-                              <div className="font-medium text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                                {stock.name}
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 dark:bg-gray-900/30 text-[11px] uppercase tracking-wide text-gray-400">
+                      <tr>
+                        <SortTh k="name" label="Saham" align="left" />
+                        <th className="px-4 py-3 text-center">Trend 5H</th>
+                        <SortTh k="price" label={`Harga (${currency})`} />
+                        <SortTh k="change" label="Ubah" />
+                        <SortTh k="changePercent" label="% Ubah" />
+                        <SortTh k="volume" label="Volume" />
+                        <th className="px-4 py-3 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                      {sortedStocks.map(stock => {
+                        const up = stock.change >= 0;
+                        return (
+                          <tr key={stock.code} className="hover:bg-gray-50 dark:hover:bg-gray-900/20">
+                            <td className="px-4 py-3">
+                              <div onClick={() => navigate(`/stock/${stock.code}`)} className="cursor-pointer">
+                                <div className="font-semibold text-gray-800 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{stock.name}</div>
+                                <div className="text-[11px] text-gray-400">{stock.code}</div>
                               </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">{stock.code}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-center">
-                              <MiniChart
-                                data={chartData[stock.code] || []}
-                                width={120}
-                                height={40}
-                              />
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div>
-                              <div className="font-semibold text-gray-800 dark:text-gray-100">
-                                {stock.price.toFixed(2)}
-                              </div>
-                              {!marketOpen && (
-                                <div className="text-[10px] text-gray-400 dark:text-gray-500">
-                                  Last Close
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className={`flex items-center justify-end space-x-1 ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                              {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                              <span className="font-medium">{isPositive ? '+' : ''}{stock.change.toFixed(2)}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${isPositive ? 'bg-green-500/20 text-green-700 dark:text-green-400' : 'bg-red-500/20 text-red-700 dark:text-red-400'}`}>
-                              {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
-                            {stock.volume.toFixed(2)}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
-                            {stock.high.toFixed(2)}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
-                            {stock.low.toFixed(2)}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() => removeStock(stock.code)}
-                              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors"
-                              title="Remove from watchlist">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            </td>
+                            <td className="px-4 py-3"><div className="flex justify-center"><MiniChart data={chartData[stock.code] || []} width={110} height={36} /></div></td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="font-semibold text-gray-800 dark:text-gray-100">{stock.price.toFixed(2)}</div>
+                              {!marketOpen && <div className="text-[10px] text-gray-400">Last Close</div>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={`inline-flex items-center gap-0.5 font-medium ${up ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}{up ? '+' : ''}{stock.change.toFixed(2)}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${up ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>{up ? '+' : ''}{stock.changePercent.toFixed(2)}%</span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">{stock.volume.toFixed(2)}M</td>
+                            <td className="px-4 py-3 text-center">
+                              <button onClick={() => removeStock(stock.code)} className="p-1.5 hover:bg-red-500/10 rounded-lg text-red-500" title="Buang"><Trash2 className="w-4 h-4" /></button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 text-center text-[11px] text-gray-400">
+                  {loading ? <span className="inline-flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Mengemas kini…</span> : 'Data real-time · auto-refresh 30s · Yahoo Finance 🆓'}
+                </div>
               </div>
-
-              {/* Last Updated */}
-              <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-500 text-center">
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                      Updating...
-                    </span>
-                  ) : (
-                    <>Real-time data • Auto-refresh every 30s • Powered by Yahoo Finance 🆓</>
-                  )}
-                </p>
-              </div>
-            </div>
             )}
 
           </div>
         </main>
-
       </div>
 
-      {/* Add Stock Modal */}
-      <AddStockModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAddStock={addStock}
-        currentWatchlist={watchlistCodes}
-        selectedMarket={selectedMarket}
-      />
-
-      {/* Advanced Filter Modal */}
-      <AdvancedFilter
-        isOpen={showFilterModal}
-        onClose={() => setShowFilterModal(false)}
-        onApplyFilters={setAdvancedFilters}
-        stocks={selectedMarket === 'US' ? getAllUSStocks() : selectedMarket === 'GLOBAL' ? [...getAllStocks(), ...getAllUSStocks()] : getAllStocks()}
-        currentFilters={advancedFilters}
-      />
+      <AddStockModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAddStock={addStock} currentWatchlist={watchlistCodes} selectedMarket={selectedMarket} />
+      <AdvancedFilter isOpen={showFilterModal} onClose={() => setShowFilterModal(false)} onApplyFilters={setAdvancedFilters}
+        stocks={selectedMarket === 'US' ? getAllUSStocks() : selectedMarket === 'GLOBAL' ? [...getAllStocks(), ...getAllUSStocks()] : getAllStocks()} currentFilters={advancedFilters} />
     </div>
   );
 }
