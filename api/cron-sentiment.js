@@ -12,6 +12,7 @@
 import { getAllModules } from '../src/services/sentimentEngine.js'
 import { getHeadlines } from '../src/services/news.js'
 import { screenSymbols } from '../src/services/screener.js'
+import { discoverCrypto } from '../src/services/cryptoDiscovery.js'
 import { MODULES } from '../src/services/marketAssets.js'
 import { sendTelegram } from './telegram.js'
 
@@ -45,6 +46,7 @@ const gauge = label => GAUGE[label] || '⚪'
 const fmtPct = p => (p == null ? '—' : p >= 0 ? `+${p}%` : `${p}%`)
 const BIAS_EMOJI = { 'Risk-On': '🟢', 'Mild Risk-On': '🟢', Neutral: '⚪', 'Mild Risk-Off': '🔴', 'Risk-Off': '🔴' }
 const fmtList = arr => (arr || []).map(x => `• ${x}`).join('\n')
+const assetIcon = t => (/USDT$/.test(t) ? '₿' : /\.KL$/.test(t) ? '🇲🇾' : (/^\^/.test(t) || /=/.test(t) || /-Y\.NYB$/.test(t)) ? '🌍' : '📊')
 
 // ---- Per-module block (deterministic, always works — RM0) ----
 function fmtModule(m) {
@@ -71,19 +73,19 @@ async function topSetups(moduleKeys, n = 3) {
   return screenSymbols(symbols, { top: n }).catch(() => [])
 }
 
-function buildMessage(session, data, { analysis, headlines, setups }) {
+function buildMessage(session, data, { analysis, headlines, focus }) {
   const s = SESSIONS[session]
   const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16)
   const head = `📡 *TRADERADAR ${s.title}*\n_${stamp} UTC_`
   const body = data.modules.map(fmtModule).join('\n\n')
 
-  let setupBlock = ''
-  if (setups?.length >= 2) {
-    setupBlock = '\n\n🎯 *Top Setups* _(calon momentum — sahkan sendiri)_\n' +
-      setups.map((s2, i) => {
-        const chg = s2.changePct != null ? ` (${fmtPct(s2.changePct)})` : ''
-        const why = s2.reasons?.length ? `\n   _${s2.reasons.slice(0, 2).join(' · ')}_` : ''
-        return `${i + 1}. *${s2.name}* — skor ${s2.opportunityScore}${chg}${why}`
+  let focusBlock = ''
+  if (focus?.length) {
+    focusBlock = `\n\n🎯 *Focus Harian — Top ${focus.length}* _(calon momentum · sahkan sendiri)_\n` +
+      focus.map((f, i) => {
+        const chg = f.changePct != null ? ` (${fmtPct(f.changePct)})` : ''
+        const why = f.reasons?.length ? `\n   _${f.reasons.slice(0, 3).join(' · ')}_` : ''
+        return `${i + 1}. ${assetIcon(f.ticker)} *${f.name}* — skor ${f.opportunityScore}${chg}${why}`
       }).join('\n')
   }
 
@@ -98,7 +100,7 @@ function buildMessage(session, data, { analysis, headlines, setups }) {
     // Demo mode (no Claude key) — still show raw headlines; news is free.
     insight = `\n\n📰 *Tajuk Berita*\n${headlines.slice(0, 5).map(h => `• ${h.title} _(${h.source})_`).join('\n')}`
   }
-  return `${head}\n\n${body}${setupBlock}${insight}\n\n_${DISCLAIMER}_`
+  return `${head}\n\n${body}${focusBlock}${insight}\n\n_${DISCLAIMER}_`
 }
 
 // ---- PHASE 2 — Claude reads scores + headlines → structured catalyst analysis ----
@@ -188,13 +190,23 @@ export default async function handler(req, res) {
 
   try {
     const mods = SESSIONS[session].modules
-    const [data, headlines, setups] = await Promise.all([
+    const [data, headlines, setups, cryptoPicks] = await Promise.all([
       getAllModules(mods),
       getHeadlines(mods).catch(() => []),
       topSetups(mods),
+      mods.includes('crypto') ? discoverCrypto({ topLiquid: 30, top: 12 }).catch(() => []) : Promise.resolve([]),
     ])
+    // Merge watchlist setups + discovered crypto → dedupe by ticker (keep best score)
+    // → one ranked "Focus Harian — Top 10".
+    const byTicker = new Map()
+    for (const it of [...(setups || []), ...(cryptoPicks || [])]) {
+      const cur = byTicker.get(it.ticker)
+      if (!cur || (it.opportunityScore ?? 0) > (cur.opportunityScore ?? 0)) byTicker.set(it.ticker, it)
+    }
+    const focus = [...byTicker.values()].sort((a, b) => (b.opportunityScore ?? 0) - (a.opportunityScore ?? 0)).slice(0, 10)
+
     const analysis = await claudeAnalysis(data, headlines)
-    const message = buildMessage(session, data, { analysis, headlines, setups })
+    const message = buildMessage(session, data, { analysis, headlines, focus })
 
     const errors = []
     let saved = null, sent = false
@@ -207,7 +219,7 @@ export default async function handler(req, res) {
       demo: !process.env.ANTHROPIC_API_KEY,
       structured: !!analysis,
       headlines: headlines.length,
-      setups: setups.length,
+      focus: focus.length,
       modules: data.modules.map(m => ({ module: m.module, sentiment: m.overall?.label || m.error })),
       saved, sent, errors,
       preview: message,
