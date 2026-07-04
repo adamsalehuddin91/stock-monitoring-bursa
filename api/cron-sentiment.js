@@ -1,18 +1,19 @@
 // TradeRadar orchestrator (Vercel Cron / external cron).
-// Flow:  fetch modules → deterministic scoring → optional Claude narrative
-//        → log to Supabase → push to Telegram.
+// Flow:  scores → news headlines → Claude synthesis (STRUCTURED JSON) →
+//        Telegram + Supabase.
 //
 // Sessions (see vercel.json crons / TRADERADAR-SETUP.md):
 //   ?session=morning  → Global + Bursa + Crypto      (08:45 MYT / 00:45 UTC)
 //   ?session=fcpo     → FCPO pre-market              (10:00 MYT / 02:00 UTC)
 //   ?session=evening  → Global + Crypto              (20:30 MYT / 12:30 UTC)
 //
-// Auth: set CRON_SECRET. Vercel Cron sends it as `Authorization: Bearer <secret>`.
-// Manual/external trigger: append `?secret=<secret>`.
+// Auth: set CRON_SECRET. Vercel Cron sends `Authorization: Bearer <secret>`;
+// manual/external trigger appends `?secret=<secret>`.
 import { getAllModules } from '../src/services/sentimentEngine.js'
+import { getHeadlines } from '../src/services/news.js'
 import { sendTelegram } from './telegram.js'
 
-const MODEL = 'claude-sonnet-4-6'
+const MODEL = 'claude-sonnet-5'   // intro $2/$10 per M; cheap for a daily narrative
 const DISCLAIMER = 'Educational purpose only. Bukan nasihat kewangan.'
 
 const SESSIONS = {
@@ -21,15 +22,32 @@ const SESSIONS = {
   evening: { title: 'US / GLOBAL EVENING WATCH', modules: ['global', 'crypto'] },
 }
 
+// PHASE 1 — Structured output. Forces Claude to return consistent, storable fields
+// instead of a freeform paragraph (JSON-schema constrained; Sonnet 5).
+const ANALYSIS_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    overall_bias: { type: 'string', enum: ['Risk-On', 'Mild Risk-On', 'Neutral', 'Mild Risk-Off', 'Risk-Off'] },
+    confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
+    summary: { type: 'string' },
+    catalysts: { type: 'array', items: { type: 'string' } },
+    focus: { type: 'array', items: { type: 'string' } },
+    cautions: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['overall_bias', 'confidence', 'summary', 'catalysts', 'focus', 'cautions'],
+}
+
 const GAUGE = { Strong: '🟢🟢', Bullish: '🟢', Neutral: '⚪', Bearish: '🔴', Weak: '🔴🔴' }
 const gauge = label => GAUGE[label] || '⚪'
 const fmtPct = p => (p == null ? '—' : p >= 0 ? `+${p}%` : `${p}%`)
+const BIAS_EMOJI = { 'Risk-On': '🟢', 'Mild Risk-On': '🟢', Neutral: '⚪', 'Mild Risk-Off': '🔴', 'Risk-Off': '🔴' }
+const fmtList = arr => (arr || []).map(x => `• ${x}`).join('\n')
 
-// ---- Telegram message (deterministic, always works — RM0) ----
+// ---- Per-module block (deterministic, always works — RM0) ----
 function fmtModule(m) {
   if (m.error) return `${m.emoji || '•'} *${m.label}* — _data tak tersedia_`
   const lines = [`${m.emoji} *${m.label}* — ${m.overall.label} ${gauge(m.overall.label)}`]
-
   if (m.module === 'fcpo' && m.levels) {
     const main = m.items[0]
     lines.push(`Harga: ${main.last ?? '—'} (${fmtPct(main.changePct)})`)
@@ -44,17 +62,28 @@ function fmtModule(m) {
   return lines.join('\n')
 }
 
-function buildMessage(session, data, overall) {
+function buildMessage(session, data, { analysis, headlines }) {
   const s = SESSIONS[session]
   const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16)
   const head = `📡 *TRADERADAR ${s.title}*\n_${stamp} UTC_`
   const body = data.modules.map(fmtModule).join('\n\n')
-  const view = overall ? `\n\n🎯 *Overall View*\n${overall}` : ''
-  return `${head}\n\n${body}${view}\n\n_${DISCLAIMER}_`
+
+  let insight = ''
+  if (analysis) {
+    // Real mode — AI synthesis (structured).
+    insight = `\n\n🎯 *Overall: ${analysis.overall_bias}* ${BIAS_EMOJI[analysis.overall_bias] || ''} _(confidence: ${analysis.confidence})_\n${analysis.summary}`
+    if (analysis.catalysts?.length) insight += `\n\n📰 *Catalyst*\n${fmtList(analysis.catalysts)}`
+    if (analysis.focus?.length) insight += `\n\n🔍 *Fokus*\n${fmtList(analysis.focus)}`
+    if (analysis.cautions?.length) insight += `\n\n⚠️ *Awas*\n${fmtList(analysis.cautions)}`
+  } else if (headlines?.length) {
+    // Demo mode (no Claude key) — still show raw headlines; news is free.
+    insight = `\n\n📰 *Tajuk Berita*\n${headlines.slice(0, 5).map(h => `• ${h.title} _(${h.source})_`).join('\n')}`
+  }
+  return `${head}\n\n${body}${insight}\n\n_${DISCLAIMER}_`
 }
 
-// ---- Optional Claude narrative (one short call; skipped when no key) ----
-async function claudeOverall(data) {
+// ---- PHASE 2 — Claude reads scores + headlines → structured catalyst analysis ----
+async function claudeAnalysis(data, headlines) {
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) return null
   const compact = data.modules.map(m => ({
@@ -62,23 +91,44 @@ async function claudeOverall(data) {
     overall: m.overall,
     top: (m.items || []).slice(0, 3).map(i => ({ n: i.name, s: i.score, c: i.changePct })),
   }))
-  const prompt = `Anda penganalisis pasaran untuk trader Malaysia. Berdasarkan skor sentimen modul di bawah, tulis SATU perenggan "Overall View" ringkas (2-3 ayat) dalam Bahasa Melayu: nada pasaran keseluruhan + fokus atau amaran. Guna bahasa selamat (cth "bullish valid jika...", "elakkan chase candle pertama"). JANGAN reka nombor — rujuk data sahaja.\n\nDATA:\n${JSON.stringify(compact)}`
+  const news = (headlines || []).map(h => `- ${h.title} (${h.source})`).join('\n') || '(tiada berita)'
+  const prompt = `Anda penganalisis pasaran untuk pasukan trader Malaysia. Berdasarkan SKOR SENTIMEN teknikal + TAJUK BERITA di bawah, hasilkan analisis ringkas dalam Bahasa Melayu.
+
+Peraturan:
+- "catalysts": ekstrak 2-4 pemacu SEBENAR dari TAJUK BERITA (bukan teknikal). Kalau tiada berita relevan, pulangkan array kosong.
+- "summary": 2-3 ayat nada pasaran keseluruhan.
+- "focus": 2-3 perkara nak dipantau.
+- "cautions": 1-3 risiko/amaran; guna bahasa selamat ("valid jika...", "elakkan chase").
+- JANGAN reka nombor atau berita — rujuk data yang diberi sahaja.
+
+SKOR SENTIMEN:
+${JSON.stringify(compact)}
+
+TAJUK BERITA HARI INI:
+${news}`
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 400, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 900,
+        thinking: { type: 'disabled' },
+        output_config: { format: { type: 'json_schema', schema: ANALYSIS_SCHEMA } },
+        messages: [{ role: 'user', content: prompt }],
+      }),
     })
     const d = await r.json()
     if (!r.ok || d.stop_reason === 'refusal') return null
-    return (d.content || []).filter(b => b.type === 'text').map(b => b.text).join(' ').trim() || null
+    const text = (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('')
+    return JSON.parse(text)   // structured output → the text block IS the JSON
   } catch {
-    return null
+    return null   // any failure → deterministic message still ships
   }
 }
 
-// ---- Supabase log (REST, no dependency; service key bypasses RLS) ----
-async function logToSupabase(session, data, overall) {
+// ---- Supabase log (service key bypasses RLS) ----
+async function logToSupabase(session, data, analysis, headlines) {
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_KEY
   if (!url || !key) return { skipped: true, reason: 'SUPABASE_URL / SUPABASE_SERVICE_KEY not set' }
   const rows = data.modules
@@ -91,8 +141,10 @@ async function logToSupabase(session, data, overall) {
       sentiment_label: m.overall?.label ?? null,
       key_levels: m.levels || null,
       top_setups: (m.items || []).slice(0, 5),
-      claude_summary: overall || null,
-      raw_data: m.raw || { items: m.items },
+      drivers: analysis?.focus || null,
+      risks: analysis?.cautions || null,
+      claude_summary: analysis?.summary || null,
+      raw_data: { items: m.items, analysis: analysis || null, headlines: (headlines || []).slice(0, 8) },
     }))
   if (!rows.length) return { skipped: true, reason: 'no valid modules' }
   const res = await fetch(`${url}/rest/v1/traderadar_sentiment_logs`, {
@@ -116,19 +168,25 @@ export default async function handler(req, res) {
   if (!SESSIONS[session]) return res.status(400).json({ error: `unknown session: ${session}`, valid: Object.keys(SESSIONS) })
 
   try {
-    const data = await getAllModules(SESSIONS[session].modules)
-    const overall = await claudeOverall(data)
-    const message = buildMessage(session, data, overall)
+    const mods = SESSIONS[session].modules
+    const [data, headlines] = await Promise.all([
+      getAllModules(mods),
+      getHeadlines(mods).catch(() => []),
+    ])
+    const analysis = await claudeAnalysis(data, headlines)
+    const message = buildMessage(session, data, { analysis, headlines })
 
     const errors = []
     let saved = null, sent = false
-    try { saved = await logToSupabase(session, data, overall) } catch (e) { errors.push(`supabase: ${e.message}`) }
+    try { saved = await logToSupabase(session, data, analysis, headlines) } catch (e) { errors.push(`supabase: ${e.message}`) }
     try { await sendTelegram(message); sent = true } catch (e) { errors.push(`telegram: ${e.message}`) }
 
     return res.status(200).json({
       ok: true,
       session,
       demo: !process.env.ANTHROPIC_API_KEY,
+      structured: !!analysis,
+      headlines: headlines.length,
       modules: data.modules.map(m => ({ module: m.module, sentiment: m.overall?.label || m.error })),
       saved, sent, errors,
       preview: message,

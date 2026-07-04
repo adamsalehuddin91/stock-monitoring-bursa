@@ -3,7 +3,7 @@
 // REAL MODE (key set): Claude Sonnet 4.6. Set a hard spend cap in the console.
 import { buildDemoReport, DISCLAIMER } from '../src/services/commodityReportTemplate.js'
 
-const MODEL = 'claude-sonnet-4-6'   // cost/quality balance for a daily report
+const MODEL = 'claude-sonnet-5'   // cost/quality balance for a daily report (intro $2/$10 per M)
 
 function buildPrompt(snap) {
   const gold = snap.key === 'gold'
@@ -40,7 +40,9 @@ export default async function handler(req, res) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 3000, messages: [{ role: 'user', content: buildPrompt(snap) }] }),
+      // thinking disabled: a narrative from given numbers needs no deep reasoning,
+      // and on Sonnet 5 adaptive thinking is ON by default → would eat the token budget.
+      body: JSON.stringify({ model: MODEL, max_tokens: 3000, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: buildPrompt(snap) }] }),
     })
     const data = await r.json()
     if (!r.ok) return res.status(502).json({ error: 'Claude API error', detail: data })

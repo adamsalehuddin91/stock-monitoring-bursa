@@ -5,6 +5,7 @@ import Sidebar from '../partials/StockSidebar';
 import Header from '../partials/Header';
 import { getCommoditySnapshot } from '../services/commodityData';
 import { buildDemoReport, DISCLAIMER } from '../services/commodityReportTemplate';
+import { getRecentSentiment, isConfigured } from '../services/traderadarLog';
 
 const THEME = {
   fcpo: { name: 'FCPO — Crude Palm Oil', emoji: '🌴', grad: 'from-emerald-500 via-emerald-600 to-teal-700', tabActive: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30', soft: 'text-emerald-600' },
@@ -63,28 +64,44 @@ function CommodityReports() {
   const [snap, setSnap] = useState(null);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [stored, setStored] = useState(null);
   const [error, setError] = useState(null);
   const theme = THEME[tab];
 
-  const run = useCallback(async (key, iv) => {
+  // FREE — Yahoo snapshot + deterministic demo narrative. Runs on load/tab/interval/refresh.
+  // No Claude here → refresh never costs tokens.
+  const loadSnapshot = useCallback(async (key, iv) => {
     setLoading(true); setError(null);
     try {
       const snapshot = await getCommoditySnapshot(key, { interval: iv });
       setSnap(snapshot);
-      let rep;
-      try {
-        const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(snapshot) });
-        if (!res.ok) throw new Error('api');
-        rep = await res.json();
-      } catch {
-        rep = { demo: true, score: snapshot.main?.indicators?.score, label: snapshot.main?.indicators?.label, reportMarkdown: buildDemoReport(snapshot), disclaimer: DISCLAIMER };
-      }
-      setReport(rep);
-    } catch (e) { setError(e.message || 'Gagal jana laporan'); }
+      setReport({ demo: true, score: snapshot.main?.indicators?.score, label: snapshot.main?.indicators?.label, reportMarkdown: buildDemoReport(snapshot), disclaimer: DISCLAIMER });
+    } catch (e) { setError(e.message || 'Gagal muat data'); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { run(tab, interval); }, [tab, interval, run]);
+  // PAID — explicit AI generation via Claude. Only on button click.
+  const generateAI = useCallback(async () => {
+    if (!snap) return;
+    setAiLoading(true); setError(null);
+    try {
+      const res = await fetch('/api/analyze', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(snap) });
+      if (!res.ok) throw new Error('api');
+      setReport(await res.json());
+    } catch { setError('Jana AI gagal — cuba lagi'); }
+    finally { setAiLoading(false); }
+  }, [snap]);
+
+  useEffect(() => { loadSnapshot(tab, interval); }, [tab, interval, loadSnapshot]);
+
+  // FREE — read the latest cron-generated analysis from Supabase (no tokens).
+  useEffect(() => {
+    let alive = true;
+    if (isConfigured()) getRecentSentiment({ module: tab, limit: 1 }).then(r => { if (alive) setStored(r?.[0] || null); }).catch(() => {});
+    else setStored(null);
+    return () => { alive = false; };
+  }, [tab]);
 
   const m = snap?.main || {}, ind = m.indicators || {};
   const score = report?.score ?? ind.score;
@@ -143,10 +160,15 @@ function CommodityReports() {
                     </button>
                   ))}
                 </div>
-                <button onClick={() => run(tab, interval)} disabled={loading} className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur disabled:opacity-50">
-                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> {loading ? 'Menjana…' : 'Refresh'}
+                <button onClick={() => loadSnapshot(tab, interval)} disabled={loading} className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg backdrop-blur disabled:opacity-50">
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> {loading ? 'Memuat…' : 'Refresh · RM0'}
                 </button>
-                {report?.demo && <span className="ml-auto text-[11px] bg-white/20 rounded-full px-2.5 py-1 backdrop-blur">🧪 Demo · RM0</span>}
+                <button onClick={generateAI} disabled={aiLoading || loading || !snap} className="flex items-center gap-1.5 bg-white text-gray-800 text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50">
+                  <Sparkles className={`w-3.5 h-3.5 ${aiLoading ? 'animate-pulse' : ''}`} /> {aiLoading ? 'Menjana…' : 'Jana AI'}
+                </button>
+                {report?.demo
+                  ? <span className="ml-auto text-[11px] bg-white/20 rounded-full px-2.5 py-1 backdrop-blur">🧪 Auto · RM0</span>
+                  : <span className="ml-auto text-[11px] bg-white/25 rounded-full px-2.5 py-1 backdrop-blur">✨ AI · Claude</span>}
               </div>
             </div>
 
@@ -159,9 +181,32 @@ function CommodityReports() {
               <StatCard label="USD/MYR" value={snap?.fx?.lastClose} chg={snap?.fx?.changePct} />
             </div>
 
+            {/* Radar tersimpan dari cron (Supabase) — FREE, refresh tak makan token */}
+            {stored && (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-gray-700/50 mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm flex items-center gap-1.5">
+                    📡 Radar Tersimpan
+                    <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-full px-2 py-0.5">cron · RM0</span>
+                  </h3>
+                  <span className="text-[11px] text-gray-400">{new Date(stored.created_at).toLocaleString('ms-MY')}</span>
+                </div>
+                {stored.claude_summary
+                  ? <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{stored.claude_summary}</p>
+                  : <p className="text-sm text-gray-400">Skor: {stored.sentiment_label} ({stored.sentiment_score}). Naratif AI belum dijana.</p>}
+                {stored.raw_data?.analysis?.catalysts?.length > 0 && (
+                  <ul className="mt-2.5 space-y-1">
+                    {stored.raw_data.analysis.catalysts.map((c, i) => (
+                      <li key={i} className="text-xs text-gray-500 dark:text-gray-400 flex gap-1.5"><span className="text-emerald-500 shrink-0">📰</span>{c}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
             {/* Report */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 md:p-7 shadow-sm border border-gray-100 dark:border-gray-700/50 mb-5">
-              {loading ? <div className="text-center py-14 text-gray-400">Menjana laporan…</div>
+              {(loading || aiLoading) ? <div className="text-center py-14 text-gray-400">Menjana laporan…</div>
                 : report?.reportMarkdown ? <MiniMarkdown text={report.reportMarkdown} />
                 : <div className="text-center py-14 text-gray-400">Tiada laporan. Tekan Refresh.</div>}
             </div>
