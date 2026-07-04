@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, TrendingUp, TrendingDown, Activity, Plus, Loader2, Search, X, ArrowUpDown } from 'lucide-react';
+import { Filter, TrendingUp, TrendingDown, Activity, Plus, Loader2, Search, X, ArrowUpDown, Zap } from 'lucide-react';
 
 import Sidebar from '../partials/StockSidebar';
 import Header from '../partials/Header';
@@ -10,7 +10,14 @@ import { getAllUSStocks } from '../data/globalStocks';
 
 // Sort keys map to the real numeric field (fixes "change" sorting by absolute
 // value while the % filter/column used changePercent).
-const SORT_FIELD = { change: 'changePercent', price: 'price', volume: 'volume' };
+const SORT_FIELD = { change: 'changePercent', price: 'price', volume: 'volume', intraday: 'intradayScore' };
+
+// Intraday-potential proxy from the snapshot: daily range % (movement) × sqrt(volume)
+// (liquidity). Rewards cheap stocks that actually MOVE and TRADE — not dead pennies.
+const intradayPotential = (s) => {
+  const range = s.high && s.low && s.price ? ((s.high - s.low) / s.price) * 100 : 0;
+  return Math.round(range * Math.sqrt(Math.max(s.volume || 0, 0)) * 10) / 10;
+};
 
 function StockScreener() {
   const navigate = useNavigate();
@@ -31,6 +38,7 @@ function StockScreener() {
     { name: 'High Volume', icon: Activity, filters: { volumeMin: '5', sortBy: 'volume', sortOrder: 'desc' } },
     { name: 'Cheap Stocks', icon: Filter, filters: { priceMax: selectedMarket === 'US' ? '50' : '5', sortBy: 'price', sortOrder: 'asc' } },
     { name: 'Breakout', icon: TrendingUp, filters: { changeMin: '5', volumeMin: '10', sortBy: 'change', sortOrder: 'desc' } },
+    { name: 'Penny Intraday', icon: Zap, filters: { priceMax: '1', volumeMin: '1', sortBy: 'intraday', sortOrder: 'desc' } },
   ];
 
   const fetchStocks = async () => {
@@ -77,6 +85,7 @@ function StockScreener() {
     if (filters.volumeMin) filtered = filtered.filter(s => s.volume >= parseFloat(filters.volumeMin));
     if (filters.sector !== 'all') filtered = filtered.filter(s => s.sector?.toLowerCase() === filters.sector.toLowerCase());
 
+    filtered = filtered.map(s => ({ ...s, intradayScore: intradayPotential(s) }));
     const key = SORT_FIELD[filters.sortBy] || filters.sortBy;
     filtered.sort((a, b) => {
       const aVal = a[key] ?? 0, bVal = b[key] ?? 0;
@@ -182,7 +191,7 @@ function StockScreener() {
                 <div className="flex gap-2">
                   <select value={filters.sortBy} onChange={e => setFilters(p => ({ ...p, sortBy: e.target.value }))}
                     className="px-3 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:text-gray-100">
-                    <option value="change">% Perubahan</option><option value="price">Harga</option><option value="volume">Volume</option>
+                    <option value="intraday">🔥 Intraday Potential</option><option value="change">% Perubahan</option><option value="price">Harga</option><option value="volume">Volume</option>
                   </select>
                   <button onClick={() => setFilters(p => ({ ...p, sortOrder: p.sortOrder === 'asc' ? 'desc' : 'asc' }))}
                     className="px-3 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg text-sm flex items-center gap-1 dark:text-gray-100">
@@ -203,6 +212,7 @@ function StockScreener() {
                       <tr>
                         <th className="px-5 py-3 text-left">Saham</th><th className="px-5 py-3 text-right">Harga</th>
                         <th className="px-5 py-3 text-right">% Ubah</th><th className="px-5 py-3 text-right">Volume</th>
+                        <th className="px-5 py-3 text-right">⚡ Intraday</th>
                         <th className="px-5 py-3 text-left">Sektor</th><th className="px-5 py-3 text-center">Aksi</th>
                       </tr>
                     </thead>
@@ -222,6 +232,7 @@ function StockScreener() {
                               <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${up ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>{up ? '+' : ''}{s.changePercent.toFixed(2)}%</span>
                             </td>
                             <td className="px-5 py-3.5 text-right text-gray-500 dark:text-gray-400">{s.volume.toFixed(1)}M</td>
+                            <td className="px-5 py-3.5 text-right"><span className="inline-flex px-2 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-full">{s.intradayScore ?? '—'}</span></td>
                             <td className="px-5 py-3.5"><span className="inline-flex px-2 py-0.5 text-[11px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full capitalize">{s.sector}</span></td>
                             <td className="px-5 py-3.5 text-center">
                               <button onClick={e => { e.stopPropagation(); addToWatchlist(s); }} className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-colors"><Plus className="w-3 h-3" /> Add</button>
