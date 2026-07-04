@@ -17,6 +17,7 @@ import News from './pages/News';
 import StockDetail from './pages/StockDetail';
 import StockScreener from './pages/StockScreener';
 import FcpoReport from './pages/FcpoReport';
+import TradeRadar from './pages/TradeRadar';
 
 // PWA Install Prompt
 import InstallPWA from './components/InstallPWA';
@@ -41,6 +42,7 @@ function App() {
         <Route path="/news" element={<News />} />
         <Route path="/stock-screener" element={<StockScreener />} />
         <Route path="/fcpo" element={<FcpoReport />} />
+        <Route path="/radar" element={<TradeRadar />} />
       </Routes>
 
       {/* PWA Install Prompt */}

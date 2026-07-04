@@ -149,7 +149,7 @@ ${news}`
 }
 
 // ---- Supabase log (service key bypasses RLS) ----
-async function logToSupabase(session, data, analysis, headlines) {
+async function logToSupabase(session, data, analysis, headlines, focus) {
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_KEY
   if (!url || !key) return { skipped: true, reason: 'SUPABASE_URL / SUPABASE_SERVICE_KEY not set' }
   const rows = data.modules
@@ -165,7 +165,7 @@ async function logToSupabase(session, data, analysis, headlines) {
       drivers: analysis?.focus || null,
       risks: analysis?.cautions || null,
       claude_summary: analysis?.summary || null,
-      raw_data: { items: m.items, analysis: analysis || null, headlines: (headlines || []).slice(0, 8) },
+      raw_data: { items: m.items, analysis: analysis || null, headlines: (headlines || []).slice(0, 8), focus: focus || null },
     }))
   if (!rows.length) return { skipped: true, reason: 'no valid modules' }
   const res = await fetch(`${url}/rest/v1/traderadar_sentiment_logs`, {
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
 
     const errors = []
     let saved = null, sent = false
-    try { saved = await logToSupabase(session, data, analysis, headlines) } catch (e) { errors.push(`supabase: ${e.message}`) }
+    try { saved = await logToSupabase(session, data, analysis, headlines, focus) } catch (e) { errors.push(`supabase: ${e.message}`) }
     try { await sendTelegram(message); sent = true } catch (e) { errors.push(`telegram: ${e.message}`) }
 
     return res.status(200).json({

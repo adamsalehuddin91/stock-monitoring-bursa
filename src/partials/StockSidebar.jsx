@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, List, Bell, Newspaper, TrendingUp, Filter, Sparkles } from 'lucide-react';
+import { LayoutDashboard, List, Bell, Newspaper, TrendingUp, Filter, Sparkles, Radar } from 'lucide-react';
 
 function StockSidebar({ sidebarOpen, setSidebarOpen }) {
   const trigger = useRef(null);
@@ -90,6 +90,23 @@ function StockSidebar({ sidebarOpen, setSidebarOpen }) {
                 >
                   <LayoutDashboard className="w-5 h-5 mr-3" />
                   <span className="text-sm font-medium">Dashboard</span>
+                </NavLink>
+              </li>
+
+              {/* TradeRadar */}
+              <li>
+                <NavLink
+                  to="/radar"
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-2 rounded-lg transition duration-150 ${
+                      isActive
+                        ? "bg-blue-500 text-white"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    }`
+                  }
+                >
+                  <Radar className="w-5 h-5 mr-3" />
+                  <span className="text-sm font-medium">TradeRadar</span>
                 </NavLink>
               </li>
 
